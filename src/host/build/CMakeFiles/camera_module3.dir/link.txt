@@ -1,0 +1,1 @@
+/usr/bin/c++ -fPIC -g -shared -Wl,-soname,libcamera_module3.so -o libcamera_module3.so CMakeFiles/camera_module3.dir/camera_module3.cpp.o 

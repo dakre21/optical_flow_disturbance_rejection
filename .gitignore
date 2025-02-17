@@ -1,0 +1,45 @@
+# Object files
+*.o
+*.obj
+
+# Executables
+*.exe
+*.out
+
+# Libraries
+*.lib
+*.a
+*.so
+*.dll
+
+# Temporary files and artifacts
+*.swp
+*~
+.*.swp
+*.gch
+*.pch
+
+# Debug files
+*.d
+
+# IDE specific files
+.vscode/
+.idea/
+*.sln
+*.vcxproj
+*.vcxproj.filters
+*.user
+*.sdf
+*.suo
+
+# CMake build directory
+/build
+
+# Qt build directory
+/debug
+/release
+
+# Other
+/temp
+
+*.pyc

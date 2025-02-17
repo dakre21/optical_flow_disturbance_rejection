@@ -1,0 +1,13 @@
+version: '3'
+services:
+  bprl-optical-flow-container:
+    image: bprl/optical-flow-ros:latest
+    container_name: bprl-optical-flow-ros-container
+    restart: always
+    network_mode: host
+    privileged: true
+    stdin_open: true
+    tty: true
+    volumes:
+      - ".:/workspaces/optical_flow"
+
