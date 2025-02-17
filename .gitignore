@@ -33,13 +33,13 @@
 *.suo
 
 # CMake build directory
-/build
+build
 
 # Qt build directory
-/debug
-/release
+debug
+release
 
 # Other
-/temp
+temp
 
 *.pyc

@@ -1,5 +1,0 @@
-/home/pi/optical_flow/src/host/build/CMakeFiles/camera_module3.dir
-/home/pi/optical_flow/src/host/build/CMakeFiles/optical_flow.dir
-/home/pi/optical_flow/src/host/build/CMakeFiles/luxonis_debug.dir
-/home/pi/optical_flow/src/host/build/CMakeFiles/edit_cache.dir
-/home/pi/optical_flow/src/host/build/CMakeFiles/rebuild_cache.dir
