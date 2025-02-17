@@ -25,10 +25,10 @@ if(OpenCV_FOUND)
 
     add_library(camera_module3 SHARED camera_module3.cpp)
 
-    #add_library(luxonis_camera SHARED luxonis_camera.cpp)
+    add_library(luxonis_camera SHARED luxonis_camera.cpp)
 
     add_executable(optical_flow main.cpp)
-    target_link_libraries(optical_flow PRIVATE ${OpenCV_LIBS} ${Libcamera_LIBRARIES} camera_module3 depthai::opencv)
+    target_link_libraries(optical_flow PRIVATE ${OpenCV_LIBS} ${Libcamera_LIBRARIES} camera_module3 luxonis_camera depthai::opencv)
 
     add_executable(luxonis_debug luxonis_debug.cpp)
     target_link_libraries(luxonis_debug PRIVATE ${OpenCV_LIBS} depthai::opencv)

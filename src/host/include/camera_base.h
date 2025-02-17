@@ -30,12 +30,11 @@ namespace camera_driver
     class CameraBase
     {
     public:
-        CameraBase()
-        {
-            // noop
-        }
+        CameraBase() {}
 
-        virtual void Run(const int& frame_rate) = 0;
+        virtual ~CameraBase() {}
+
+        virtual void Run(const int &frame_rate) = 0;
 
         virtual void CalculateOpticalFlow(const cv::Mat &gray)
         {

@@ -20,7 +20,7 @@ namespace camera_driver
         CameraModule3(std::shared_ptr<libcamera::Camera> camera,
                       const int &width, const int &height, const std::string &id, std::atomic<bool> &running);
 
-        virtual ~CameraModule3();
+        ~CameraModule3();
 
         void Stop();
 
