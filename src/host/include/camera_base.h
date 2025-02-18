@@ -36,10 +36,30 @@ namespace camera_driver
 
         virtual void Run(const int &frame_rate) = 0;
 
-        virtual void CalculateOpticalFlow(const cv::Mat &gray)
+        virtual cv::Mat CalculateOpticalFlow(cv::Mat &&gray)
         {
+            cv::Mat flow;
+            if (last_frame_ != nullptr)
+            {
+                FarnebackParams params;
+                cv::calcOpticalFlowFarneback(*last_frame_,
+                                             gray,
+                                             flow,
+                                             params.pyr_scale,
+                                             params.num_levels,
+                                             params.win_size,
+                                             params.num_iters,
+                                             params.poly_n,
+                                             params.poly_sigma,
+                                             params.flags);
+            }
+
+            last_frame_ = std::make_unique<cv::Mat>(std::move(gray));
+
+            return flow;
         }
 
     private:
+        std::unique_ptr<cv::Mat> last_frame_;
     };
 } // end of namespace camera_driver

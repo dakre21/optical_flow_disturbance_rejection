@@ -11,6 +11,8 @@ namespace camera_driver
     LuxonisCamera::LuxonisCamera(const dai::DeviceInfo &device_info,
                                  const dai::CameraBoardSocket &socket,
                                  const dai::ColorCameraProperties::SensorResolution &resolution,
+                                 const int &width,
+                                 const int &height,
                                  const int &frame_rate,
                                  const std::string &name,
                                  std::atomic<bool> &running) : running_(running), id_(name)
@@ -22,6 +24,7 @@ namespace camera_driver
 
         camera_->setBoardSocket(socket);
         camera_->setResolution(resolution);
+        camera_->setVideoSize(width, height);
         camera_->setFps(frame_rate);
 
         video_->input.setBlocking(false);
@@ -44,11 +47,15 @@ namespace camera_driver
         while (running_)
         {
             auto now = std::chrono::steady_clock::now();
-            auto videoIn = data_output_queue->get<dai::ImgFrame>();
 
-            // Get BGR frame from NV12 encoded video frame to show with opencv
-            // Visualizing the frame on slower hosts might have overhead
-            // cv::imwrite("image.png", videoIn->getCvFrame());
+            auto video_in = data_output_queue->get<dai::ImgFrame>();
+            auto bgr = video_in->getCvFrame();
+
+            cv::Mat gray;
+            cv::cvtColor(bgr, gray, cv::COLOR_BGR2GRAY);
+            auto flow = CalculateOpticalFlow(std::move(gray));
+            //std::cout << id_ << " " << flow.rows << " " << flow.cols << " " << flow.channels() << std::endl;
+
             if (last_time.time_since_epoch().count() != 0)
             {
                 const auto frame_time = std::chrono::duration<double>(now - last_time).count();

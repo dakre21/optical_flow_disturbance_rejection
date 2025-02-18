@@ -13,7 +13,11 @@ Description: CameraModule3 interface implementation to libcamera driver
 namespace camera_driver
 {
 
-    CameraModule3::CameraModule3(std::shared_ptr<libcamera::Camera> camera, const int &width, const int &height, const std::string &id, std::atomic<bool> &running) : camera_(camera), id_(id), running_(running)
+    CameraModule3::CameraModule3(std::shared_ptr<libcamera::Camera> camera,
+                                 const int &width,
+                                 const int &height,
+                                 const std::string &id,
+                                 std::atomic<bool> &running) : camera_(camera), id_(id), running_(running)
     {
         camera_->acquire();
 
@@ -69,6 +73,7 @@ namespace camera_driver
             cv::Mat yuv(h + h / 2, w, CV_8UC1, memory);
             cv::Mat gray;
             cv::cvtColor(yuv, gray, cv::COLOR_YUV2GRAY_I420);
+            auto flow = CalculateOpticalFlow(std::move(gray));
 
             if (munmap(memory, buffer->planes()[0].length) == -1)
             {

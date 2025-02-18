@@ -21,6 +21,8 @@ namespace camera_driver
         LuxonisCamera(const dai::DeviceInfo &device_info,
                       const dai::CameraBoardSocket &socket,
                       const dai::ColorCameraProperties::SensorResolution &resolution,
+                      const int& width,
+                      const int& height,
                       const int &frame_rate,
                       const std::string &name,
                       std::atomic<bool> &running);

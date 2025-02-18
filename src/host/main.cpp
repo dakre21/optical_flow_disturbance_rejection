@@ -62,7 +62,7 @@ int main(int argc, char *argv[])
     {
         camera_modules.emplace_back(
             std::make_unique<camera_driver::LuxonisCamera>(
-                dev, dai::CameraBoardSocket::CAM_A, dai::ColorCameraProperties::SensorResolution::THE_720_P, frame_rate, std::to_string(idx++), running));
+                dev, dai::CameraBoardSocket::CAM_A, dai::ColorCameraProperties::SensorResolution::THE_720_P, width, height, frame_rate, std::to_string(idx++), running));
     }
 
     std::vector<std::thread> threads;
