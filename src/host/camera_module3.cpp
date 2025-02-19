@@ -17,7 +17,7 @@ namespace camera_driver
                                  const int &width,
                                  const int &height,
                                  const std::string &id,
-                                 std::atomic<bool> &running) : camera_(camera), id_(id), running_(running)
+                                 std::atomic<bool> &running) : CameraBase(width, height), camera_(camera), id_(id), running_(running)
     {
         camera_->acquire();
 
@@ -127,7 +127,7 @@ namespace camera_driver
             }
         };
 
-        const std::chrono::milliseconds frame_duration(1000 / frame_rate);
+        const std::chrono::milliseconds frame_duration(1000 / (2 * frame_rate));
         issue_requests(false);
         while (running_)
         {

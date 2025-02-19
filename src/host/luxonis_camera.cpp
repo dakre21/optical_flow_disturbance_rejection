@@ -15,7 +15,7 @@ namespace camera_driver
                                  const int &height,
                                  const int &frame_rate,
                                  const std::string &name,
-                                 std::atomic<bool> &running) : running_(running), id_(name)
+                                 std::atomic<bool> &running) : CameraBase(width, height), running_(running), id_(name)
     {
         camera_ = pipeline_.create<dai::node::ColorCamera>();
         video_ = pipeline_.create<dai::node::XLinkOut>();
@@ -43,7 +43,7 @@ namespace camera_driver
 
         std::chrono::steady_clock::time_point last_time;
 
-        const std::chrono::milliseconds frame_duration(1000 / frame_rate);
+        const std::chrono::milliseconds frame_duration(1000 / (2 * frame_rate));
         while (running_)
         {
             auto now = std::chrono::steady_clock::now();
@@ -54,7 +54,7 @@ namespace camera_driver
             cv::Mat gray;
             cv::cvtColor(bgr, gray, cv::COLOR_BGR2GRAY);
             auto flow = CalculateOpticalFlow(std::move(gray));
-            //std::cout << id_ << " " << flow.rows << " " << flow.cols << " " << flow.channels() << std::endl;
+            // std::cout << id_ << " " << flow.rows << " " << flow.cols << " " << flow.channels() << std::endl;
 
             if (last_time.time_since_epoch().count() != 0)
             {
