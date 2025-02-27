@@ -10,4 +10,5 @@ services:
     tty: true
     volumes:
       - ".:/workspaces/optical_flow"
+      - "/dev/shm:/dev/shm"
 
