@@ -68,14 +68,14 @@ class FlowAggregatorSubscriber : public rclcpp::Node {
                 x_hat << 0, 0, 0, 0, 0, 0;
 
                 std::stringstream ss;
-                ss << "<";
+                ss << "[";
                 for (auto i = 0l; i < x_hat.rows(); ++i) {
                   ss << x_hat(i, 0);
                   if (i <= x_hat.rows() - 1) {
                     ss << ",";
                   }
                 }
-                ss << ">";
+                ss << "]";
 
                 *serial_port_ << ss.str();
                 serial_port_->flush();

@@ -2,7 +2,7 @@
 
 ## Instructions (Build & Run)
 **install dependencies**
-1. ```./install_deps.sh```
+1. ```./setup.sh```
 
 **processes running in docker**
 1. ```docker build --no-cache -t bprl/optical-flow-ros:latest .```
@@ -18,6 +18,6 @@
 1. Clone depthai-core and build locally [depthai-core](https://github.com/luxonis/depthai-core/tree/main) (v2.29.0)
     1. ```cmake -S. -Bbuild -D'CMAKE_INSTALL_PREFIX=/usr/local'```
     1. ```cmake --build build --target install```
-1. ```mkdir host/build & cd host/build```
+1. Host code ```mkdir host/build & cd host/build```
 1. ```cmake .. & make -j```
 1. ```./optical_flow``` with all 4 cameras connected (2x camera module 3 and 2x luxonis oak)
