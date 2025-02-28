@@ -8,6 +8,7 @@ Description: Base camera class to run optical flow on each frame
 #include <boost/interprocess/exceptions.hpp>
 #include <boost/interprocess/mapped_region.hpp>
 #include <boost/interprocess/shared_memory_object.hpp>
+#include <boost/interprocess/sync/named_semaphore.hpp>
 #include <cmath>
 #include <opencv2/opencv.hpp>
 #include <opencv2/video/tracking.hpp>
@@ -70,6 +71,15 @@ class CameraBase {
 
     shm_region_ = std::make_unique<bip::mapped_region>(*shm_, bip::read_write);
 
+    const auto sem_name_writer = std::string("WriterSemaphore") + id_;
+    const auto sem_name_reader = std::string("ReaderSemaphore") + id_;
+    bip::named_semaphore::remove(sem_name_writer.c_str());
+    bip::named_semaphore::remove(sem_name_reader.c_str());
+
+    writer_sem_ = std::make_unique<bip::named_semaphore>(
+        bip::open_or_create, sem_name_writer.c_str(), 1);
+    reader_sem_ = std::make_unique<bip::named_semaphore>(
+        bip::open_or_create, sem_name_reader.c_str(), 0);
   }
 
   virtual ~CameraBase() {}
@@ -77,11 +87,9 @@ class CameraBase {
   virtual void Run(const int &frame_rate) = 0;
 
   virtual void CalculateOpticalFlow(cv::Mat &&gray) {
-    assert(lk_ != nullptr);
-    assert(shm_region_ != nullptr);
-
     std::vector<float> u(feature_points_.size());
     std::vector<float> v(feature_points_.size());
+
     if (last_frame_ != nullptr) {
       std::vector<unsigned char> status;
       std::vector<cv::Point2f> new_points;
@@ -119,11 +127,18 @@ class CameraBase {
         // std::cout << u[i] << ", " << v[i] << std::endl;
       }
 
-      const size_t num_bytes = feature_points_.size() * sizeof(float);
-      std::memcpy(shm_region_->get_address(), u.data(), num_bytes);
-      std::memcpy(
-          static_cast<std::byte *>(shm_region_->get_address()) + num_bytes,
-          v.data(), num_bytes);
+      if (writer_sem_->try_wait()) {
+        const size_t num_bytes = feature_points_.size() * sizeof(float);
+        std::memcpy(shm_region_->get_address(), u.data(), num_bytes);
+        std::memcpy(
+            static_cast<std::byte *>(shm_region_->get_address()) + num_bytes,
+            v.data(), num_bytes);
+
+        reader_sem_->post();
+      } else {
+        std::cout << "Reader " << id_ << " has lock dropping frame"
+                  << std::endl;
+      }
     }
 
     last_frame_ = std::make_unique<cv::Mat>(std::move(gray));
@@ -138,5 +153,7 @@ class CameraBase {
   std::unique_ptr<cv::Mat> last_frame_;
   std::unique_ptr<bip::shared_memory_object> shm_;
   std::unique_ptr<bip::mapped_region> shm_region_;
+  std::unique_ptr<bip::named_semaphore> reader_sem_;
+  std::unique_ptr<bip::named_semaphore> writer_sem_;
 };
 }  // end of namespace camera_driver

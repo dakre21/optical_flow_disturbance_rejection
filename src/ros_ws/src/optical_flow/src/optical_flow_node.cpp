@@ -8,6 +8,7 @@ publishes them
 #include <boost/interprocess/exceptions.hpp>
 #include <boost/interprocess/mapped_region.hpp>
 #include <boost/interprocess/shared_memory_object.hpp>
+#include <boost/interprocess/sync/named_semaphore.hpp>
 #include <chrono>
 #include <functional>
 #include <iostream>
@@ -40,9 +41,20 @@ class OpticalFlowPublisher : public rclcpp::Node {
 
       regions_.emplace_back(
           std::make_unique<bip::mapped_region>(*shms_[i], bip::read_only));
+
+      const auto sem_name_reader =
+          std::string("ReaderSemaphore") + std::to_string(i);
+      const auto sem_name_writer =
+          std::string("WriterSemaphore") + std::to_string(i);
+
+      reader_sems_.emplace_back(std::make_unique<bip::named_semaphore>(
+          bip::open_only, sem_name_reader.c_str()));
+      writer_sems_.emplace_back(std::make_unique<bip::named_semaphore>(
+          bip::open_only, sem_name_writer.c_str()));
     }
+
     timer_ = this->create_wall_timer(
-        10ms, std::bind(&OpticalFlowPublisher::TimerCallback, this));
+        5ms, std::bind(&OpticalFlowPublisher::TimerCallback, this));
   }
 
  private:
@@ -52,20 +64,29 @@ class OpticalFlowPublisher : public rclcpp::Node {
 
     for (size_t i = 0; i < flow_pubs_.size(); ++i) {
       const auto& pub = flow_pubs_[i];
+      auto& reader_sem = reader_sems_[i];
+      auto& writer_sem = writer_sems_[i];
 
       optical_flow_msgs::msg::Flows msg;
       msg.stamp = this->get_clock()->now();
       msg.u.resize(num_points_, 0.0f);
       msg.v.resize(num_points_, 0.0f);
 
-      const size_t num_bytes = NUM_POINTS * sizeof(float);
-      std::memcpy(msg.u.data(), regions_[i]->get_address(), num_bytes);
-      std::memcpy(
-          msg.v.data(),
-          static_cast<std::byte*>(regions_[i]->get_address()) + num_bytes,
-          num_bytes);
+      if (reader_sem->try_wait()) {
+        const size_t num_bytes = NUM_POINTS * sizeof(float);
+        std::memcpy(msg.u.data(), regions_[i]->get_address(), num_bytes);
+        std::memcpy(
+            msg.v.data(),
+            static_cast<std::byte*>(regions_[i]->get_address()) + num_bytes,
+            num_bytes);
 
-      pub->publish(msg);
+        pub->publish(msg);
+
+        writer_sem->post();
+      } else {
+        RCLCPP_DEBUG(this->get_logger(), "Writer %d is busy skipping frame",
+                     (int)i);
+      }
     }
   }
   int num_points_;
@@ -74,6 +95,8 @@ class OpticalFlowPublisher : public rclcpp::Node {
       flow_pubs_;
   std::vector<std::unique_ptr<bip::shared_memory_object>> shms_;
   std::vector<std::unique_ptr<bip::mapped_region>> regions_;
+  std::vector<std::unique_ptr<bip::named_semaphore>> reader_sems_;
+  std::vector<std::unique_ptr<bip::named_semaphore>> writer_sems_;
 };
 }  // namespace optical_flow
 
