@@ -13,12 +13,16 @@ find_package(Boost REQUIRED)
 find_package(optical_flow_msgs REQUIRED)
 find_package(Eigen3 REQUIRED)
 
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(LibSerial REQUIRED libserial)
+
 include_directories(
   include
   ${Boost_INCLUDE_DIRS}
   ${rclcpp_INCLUDE_DIRS}
   ${optical_flow_msgs_INCLUDE_DIRS}
   ${EIGEN3_INCLUDE_DIR}
+  ${LibSerial_INCLUDE_DIRS}
 )
 
 add_executable(optical_flow_node src/optical_flow_node.cpp)
@@ -33,7 +37,7 @@ add_executable(flow_aggregator_node src/flow_aggregator_node.cpp)
 target_include_directories(flow_aggregator_node PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include/${PROJECT_NAME}>)
-ament_target_dependencies(flow_aggregator_node rclcpp optical_flow_msgs)
+ament_target_dependencies(flow_aggregator_node rclcpp optical_flow_msgs LibSerial)
 target_compile_features(flow_aggregator_node PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++17
 
 install(TARGETS optical_flow_node flow_aggregator_node

@@ -14,7 +14,9 @@ RUN apt update \
     && apt install -y net-tools \
     && apt install -y iputils-ping \
     && apt install -y python3 \
-    && apt install -y curl 
+    && apt install -y curl \
+    && apt install -y libserial-dev \
+    && apt install -y minicom 
 
 RUN curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg \
     && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(. /etc/os-release && echo $UBUNTU_CODENAME) main" | tee /etc/apt/sources.list.d/ros2.list > /dev/null \
@@ -28,8 +30,10 @@ RUN curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o 
     && apt install -y python3-argcomplete \
     && rm -rf /var/lib/apt/lists/*
 
-SHELL ["/bin/bash", "-c"]
+#SHELL ["/bin/bash", "-c"]
 
 RUN echo ". /opt/ros/jazzy/setup.bash" >> /root/.bashrc
 
 WORKDIR /workspaces/optical_flow
+
+CMD ["bash"]
