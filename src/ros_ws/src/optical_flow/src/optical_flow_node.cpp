@@ -69,6 +69,7 @@ class OpticalFlowPublisher : public rclcpp::Node {
 
       optical_flow_msgs::msg::Flows msg;
       msg.stamp = this->get_clock()->now();
+      msg.frame_id = std::string("camera_") + std::to_string(i);
       msg.u.resize(num_points_, 0.0f);
       msg.v.resize(num_points_, 0.0f);
 

@@ -11,7 +11,7 @@
 1. In the container build the ros2 source simply by navigating the the root of ros_ws and run ```colcon build --symlink-install```
 1. Run the following:
     1. ```ros2 run optical_flow optical_flow_node --ros-args --remap __ns:=/<rpi1/2>```
-    1. ```ros2 run optical_flow_aggregator flow_aggregator_node``` on the raspberrypi1 host connected to the pixhawk
+    1. ```ros2 run optical_flow flow_aggregator_node``` on the raspberrypi1 host connected to the pixhawk
     1. Currently topics and stuff are static, could improve by parameterizing them as ros2 parameters later on
 
 **processes running on debian**
