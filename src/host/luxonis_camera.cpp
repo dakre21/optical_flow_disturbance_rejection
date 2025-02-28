@@ -23,6 +23,14 @@ LuxonisCamera::LuxonisCamera(
   camera_->setVideoSize(width, height);
   camera_->setFps(frame_rate);
 
+  // (dakre) TODO this may require more fine-tuning, the luxonis ISP
+  // is doing more in different lighting scenarios which throws off
+  // the optical flow
+  camera_->initialControl.setAutoFocusMode(
+      dai::CameraControl::AutoFocusMode::OFF);
+  //camera_->initialControl.setManualWhiteBalance(4000)
+  //camera_->initialControl.setManualExposure(20000, 800)
+
   video_->input.setBlocking(false);
   video_->input.setQueueSize(10);
 

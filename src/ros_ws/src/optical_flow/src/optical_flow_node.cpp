@@ -21,18 +21,25 @@ publishes them
 using namespace std::chrono_literals;
 namespace bip = boost::interprocess;
 
+#define NUM_CAMERAS 4
+#define NUM_POINTS 100
+
 namespace optical_flow {
 class OpticalFlowPublisher : public rclcpp::Node {
  public:
-  OpticalFlowPublisher() : Node("optical_flow_publisher") {
+  OpticalFlowPublisher()
+      : Node("optical_flow_publisher"), num_points_(NUM_POINTS) {
     const std::string pub_name = "optical_flow_vectors_";
-    for (int i = 0; i < 4; ++i) {
+    for (int i = 0; i < NUM_CAMERAS; ++i) {
       const auto shm_name = pub_name + std::to_string(i);
       flow_pubs_.emplace_back(
           this->create_publisher<optical_flow_msgs::msg::Flows>(shm_name, 10));
 
-      shm_.emplace_back(std::make_unique<bip::shared_memory_object>(
+      shms_.emplace_back(std::make_unique<bip::shared_memory_object>(
           bip::open_only, shm_name.c_str(), bip::read_only));
+
+      regions_.emplace_back(
+          std::make_unique<bip::mapped_region>(*shms_[i], bip::read_only));
     }
     timer_ = this->create_wall_timer(
         10ms, std::bind(&OpticalFlowPublisher::TimerCallback, this));
@@ -40,17 +47,33 @@ class OpticalFlowPublisher : public rclcpp::Node {
 
  private:
   void TimerCallback() {
-    optical_flow_msgs::msg::Flows msg;
+    assert(flow_pubs_.size() == NUM_CAMERAS);
+    assert(regions_.size() == NUM_CAMERAS);
 
-    for (auto& pub : flow_pubs_) {
+    for (size_t i = 0; i < flow_pubs_.size(); ++i) {
+      const auto& pub = flow_pubs_[i];
+
+      optical_flow_msgs::msg::Flows msg;
+      msg.stamp = this->get_clock()->now();
+      msg.u.resize(num_points_, 0.0f);
+      msg.v.resize(num_points_, 0.0f);
+
+      const size_t num_bytes = NUM_POINTS * sizeof(float);
+      std::memcpy(msg.u.data(), regions_[i]->get_address(), num_bytes);
+      std::memcpy(
+          msg.v.data(),
+          static_cast<std::byte*>(regions_[i]->get_address()) + num_bytes,
+          num_bytes);
+
       pub->publish(msg);
     }
   }
+  int num_points_;
   rclcpp::TimerBase::SharedPtr timer_;
   std::vector<rclcpp::Publisher<optical_flow_msgs::msg::Flows>::SharedPtr>
       flow_pubs_;
-  std::vector<std::unique_ptr<bip::shared_memory_object>> shm_;
-  std::vector<std::unique_ptr<bip::mapped_region>> region_;
+  std::vector<std::unique_ptr<bip::shared_memory_object>> shms_;
+  std::vector<std::unique_ptr<bip::mapped_region>> regions_;
 };
 }  // namespace optical_flow
 
