@@ -24,16 +24,23 @@ RUN curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o 
     && apt upgrade -y \
     && apt install -y ros-jazzy-desktop \
     && apt install -y ros-dev-tools \
+    && apt install -y ros-jazzy-mavros \
     && apt install -y python3-vcstool \
     && apt install -y python3-colcon-common-extensions \
     && apt install -y python3-rosdep \
     && apt install -y python3-argcomplete \
     && rm -rf /var/lib/apt/lists/*
 
-#SHELL ["/bin/bash", "-c"]
+# Installation of ros packages for vicon system
+RUN mkdir -p /workspaces/mocap4r2_ws/src \
+    && cd /workspaces/mocap4r2_ws/src \
+    && git clone https://github.com/MOCAP4ROS2-Project/mocap4ros2_vicon.git -b rolling \
+    && cd .. \
+    && vcs import src < src/mocap4ros2_vicon/dependency_repos.repos \
+    && vcs pull src 
 
 RUN echo ". /opt/ros/jazzy/setup.bash" >> /root/.bashrc
 
-WORKDIR /workspaces/optical_flow
+WORKDIR /workspaces
 
 CMD ["bash"]
