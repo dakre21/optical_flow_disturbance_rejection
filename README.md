@@ -8,7 +8,7 @@
 1. ```docker build --no-cache -t bprl/optical-flow-ros:latest .```
 1. ```docker compose up``` and ```docker compose down``` to shut down
     1. On the raspberry pi it should be ```docker-compose up -d``` followed by ```docker container ls``` get the container id then shell into it ```docker exec -it <container-id> bash```
-1. In the container build the ros2 source simply by navigating the the root of ros_ws and run ```colcon build --symlink-install```
+1. In the container build the ros2 source simply by running ```colcon build --symlink-install``` in the current directory "/workspaces"
 1. Run the following:
     1. ```ros2 run optical_flow optical_flow_node --ros-args --remap __ns:=/<rpi1/2>```
     1. ```ros2 run optical_flow flow_aggregator_node``` on the raspberrypi1 host connected to the pixhawk

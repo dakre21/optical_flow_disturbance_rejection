@@ -35,6 +35,7 @@ RUN curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o 
 RUN mkdir -p /workspaces/mocap4r2_ws/src \
     && cd /workspaces/mocap4r2_ws/src \
     && git clone https://github.com/MOCAP4ROS2-Project/mocap4ros2_vicon.git -b rolling \
+    && git clone https://github.com/avolchko/drone_posn_hold.git \
     && cd .. \
     && vcs import src < src/mocap4ros2_vicon/dependency_repos.repos \
     && vcs pull src 
