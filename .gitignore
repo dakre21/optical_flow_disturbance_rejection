@@ -34,6 +34,8 @@
 
 # CMake build directory
 build
+install
+log
 
 # Qt build directory
 debug
@@ -43,3 +45,6 @@ release
 temp
 
 *.pyc
+
+# Dependencies
+mocap*
