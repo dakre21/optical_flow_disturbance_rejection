@@ -1,0 +1,6 @@
+[submodule "src/ros_ws/src/mavros"]
+	path = src/ros_ws/src/mavros
+	url = git@github.com:dakre21/mavros.git
+[submodule "src/fsw/ardupilot"]
+	path = src/fsw/ardupilot
+	url = git@github.com:dakre21/ardupilot.git
