@@ -19,8 +19,6 @@ def generate_launch_description():
     gcs_url = LaunchConfiguration("gcs_url")
     tgt_system = LaunchConfiguration("tgt_system")
     tgt_component = LaunchConfiguration("tgt_component")
-    pluginlists_yaml = LaunchConfiguration("pluginlists_yaml")
-    config_yaml = LaunchConfiguration("config_yaml")
     log_output = LaunchConfiguration("log_output")
     fcu_protocol = LaunchConfiguration("fcu_protocol")
     respawn_mavros = LaunchConfiguration("respawn_mavros")
@@ -42,20 +40,6 @@ def generate_launch_description():
     declare_tgt_component = DeclareLaunchArgument(
         "tgt_component", default_value="1", description="Target component ID"
     )
-    declare_pluginlists_yaml = DeclareLaunchArgument(
-        "pluginlists_yaml",
-        default_value=PathJoinSubstitution(
-            [FindPackageShare("mavros"), "launch", "apm_pluginlists.yaml"]
-        ),
-        description="Plugin lists YAML file",
-    )
-    declare_config_yaml = DeclareLaunchArgument(
-        "config_yaml",
-        default_value=PathJoinSubstitution(
-            [FindPackageShare("mavros"), "launch", "apm_config.yaml"]
-        ),
-        description="Config YAML file",
-    )
     declare_log_output = DeclareLaunchArgument(
         "log_output", default_value="screen", description="Log output"
     )
@@ -75,10 +59,14 @@ def generate_launch_description():
         "use_optical_flow", default_value="True", description="Use optical_flow"
     )
     declare_use_optical_flow_aggregator = DeclareLaunchArgument(
-        "use_optical_flow_aggregator", default_value="False", description="Use optical_flow_aggregator"
+        "use_optical_flow_aggregator",
+        default_value="False",
+        description="Use optical_flow_aggregator",
     )
     declare_optical_flow_ns = DeclareLaunchArgument(
-        "optical_flow_ns", default_value="rpi1", description="Namespace for optical flow node"
+        "optical_flow_ns",
+        default_value="rpi1",
+        description="Namespace for optical flow node",
     )
 
     mavros_node = Node(
@@ -92,8 +80,17 @@ def generate_launch_description():
             {"tgt_system": tgt_system},
             {"tgt_component": tgt_component},
             {"fcu_protocol": fcu_protocol},
-            {"pluginlists_yaml": pluginlists_yaml},
-            {"config_yaml": config_yaml},
+            {"plugin_denylist": ["*"]},
+            {
+                "plugin_allowlist": [
+                    "sys_*",
+                    "setpoint_position",
+                    "imu",
+                    "command",
+                    "local_position",
+                    "vision_pose"
+                ]
+            },
         ],
         respawn=respawn_mavros,
     )
@@ -109,6 +106,14 @@ def generate_launch_description():
             )
         ),
         condition=IfCondition(use_mocap),
+    )
+
+    mocap_to_mavros_node = Node(
+        name="relay_node",
+        package="mocap_to_mavros",
+        executable="relay_node",
+        namespace="",
+        output="screen"
     )
 
     optical_flow_node = Node(
@@ -135,8 +140,6 @@ def generate_launch_description():
             declare_gcs_url,
             declare_tgt_system,
             declare_tgt_component,
-            declare_pluginlists_yaml,
-            declare_config_yaml,
             declare_log_output,
             declare_fcu_protocol,
             declare_respawn_mavros,
@@ -147,6 +150,7 @@ def generate_launch_description():
             declare_optical_flow_ns,
             mavros_node,
             mocap4r2_launch,
+            mocap_to_mavros_node,
             optical_flow_node,
             optical_flow_aggregator_node,
         ]
