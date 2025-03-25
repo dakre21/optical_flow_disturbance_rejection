@@ -60,7 +60,7 @@ def generate_launch_description():
     )
     declare_use_optical_flow_aggregator = DeclareLaunchArgument(
         "use_optical_flow_aggregator",
-        default_value="False",
+        default_value="True",
         description="Use optical_flow_aggregator",
     )
     declare_optical_flow_ns = DeclareLaunchArgument(

@@ -22,9 +22,11 @@ using namespace std::chrono_literals;
 
 namespace optical_flow {
 
-class FlowAggregatorSubscriber : public rclcpp::Node {
+using namespace std::chrono_literals;
+
+class FlowAggregator : public rclcpp::Node {
  public:
-  FlowAggregatorSubscriber() : Node("flow_aggregator_node") {
+  FlowAggregator() : Node("flow_aggregator_node") {
     twist_pub_ = this->create_publisher<geometry_msgs::msg::TwistStamped>(
         "/mavros/velocity_observer/velocity", 10);
 
@@ -34,55 +36,66 @@ class FlowAggregatorSubscriber : public rclcpp::Node {
         topic = TOPIC_NS + std::string("2/") + TOPIC + std::to_string(i - 4);
       }
 
-      // (dakre) few ways to go about this, but simple straight forward way
-      // is to simply transform the flows from each camera to robot states and
-      // send that to the pixhawk. So that will be the approach right now.
       flow_subs_.emplace_back(
           this->create_subscription<optical_flow_msgs::msg::Flows>(
               topic, 10, [this](optical_flow_msgs::msg::Flows::SharedPtr msg) {
                 assert(msg != nullptr);
                 assert(msg->u.size() == msg->v.size());
 
-                // RCLCPP_DEBUG(this->get_logger(), "Message recv from %s",
-                //              msg->frame_id.c_str());
-
-                Eigen::MatrixXd flow_mat(2, msg->u.size());
-                for (size_t i = 0; i < msg->u.size(); ++i) {
-                  flow_mat(0, i) = msg->u[i];
-                  flow_mat(1, i) = msg->v[i];
-                }
-
-                // (dakre) TODO fill this out when we have it: y = Cx -> \hat{x}
-                // \hat{x} = C^{-1} y
-                Eigen::MatrixXd x_hat(6, 1);
-                x_hat << 0, 0, 0, 0, 0, 0;
-
-                geometry_msgs::msg::TwistStamped twist;
-                twist.header.stamp = this->get_clock()->now();
-                twist.header.frame_id = "base_link";
-                twist.twist.linear.x = x_hat(3);
-                twist.twist.linear.y = x_hat(4);
-                twist.twist.linear.z = x_hat(5);
-                twist.twist.angular.x = x_hat(0);
-                twist.twist.angular.y = x_hat(1);
-                twist.twist.angular.z = x_hat(2);
-
-                twist_pub_->publish(twist);
+                for (const auto& v : msg->v) v_.emplace_back(v);
+                for (const auto& u : msg->u) u_.emplace_back(u);
               }));
     }
+
+    timer_ = this->create_wall_timer(
+        10ms, std::bind(&FlowAggregator::TimerCallback, this));
   }
 
  private:
+  void TimerCallback() {
+    assert(u_.size() == v_.size());
+
+    Eigen::MatrixXd flow_mat(2, u_.size());
+    for (size_t i = 0; i < u_.size(); ++i) {
+      flow_mat(0, i) = u_[i];
+      flow_mat(1, i) = v_[i];
+    }
+
+    // (dakre) TODO perform projection when we have it: y = Cx -> \hat{x}
+    // \hat{x} = C^{-1} y... furthermore, may need to truncate u and v to match
+    // expected size of the C linear mapping
+    Eigen::MatrixXd x_hat(6, 1);
+    x_hat << 0, 0, 0, 0, 0, 0;
+
+    geometry_msgs::msg::TwistStamped twist;
+    twist.header.stamp = this->get_clock()->now();
+    twist.header.frame_id = "base_link";
+    twist.twist.linear.x = x_hat(3);
+    twist.twist.linear.y = x_hat(4);
+    twist.twist.linear.z = x_hat(5);
+    twist.twist.angular.x = x_hat(0);
+    twist.twist.angular.y = x_hat(1);
+    twist.twist.angular.z = x_hat(2);
+
+    twist_pub_->publish(twist);
+
+    u_.clear();
+    v_.clear();
+  }
+
+  std::vector<float> u_, v_;
+
   std::vector<rclcpp::Subscription<optical_flow_msgs::msg::Flows>::SharedPtr>
       flow_subs_;
   rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr twist_pub_;
+  rclcpp::TimerBase::SharedPtr timer_;
 };
 }  // namespace optical_flow
 
 int main(int argc, char* argv[]) {
   (void)argc, (void)argv;
   rclcpp::init(argc, argv);
-  rclcpp::spin(std::make_shared<optical_flow::FlowAggregatorSubscriber>());
+  rclcpp::spin(std::make_shared<optical_flow::FlowAggregator>());
   rclcpp::shutdown();
   return 0;
 }
