@@ -5,13 +5,12 @@ Description: Aggregator ros2 node that collects all optical flows asynchronously
 and transforms them to robot states for the pixhawk
 */
 
-#include <libserial/SerialStream.h>
-
 #include <Eigen/Dense>
 #include <memory>
 #include <string>
 #include <vector>
 
+#include "geometry_msgs/msg/twist_stamped.hpp"
 #include "optical_flow_msgs/msg/flows.hpp"
 #include "rclcpp/rclcpp.hpp"
 
@@ -20,23 +19,14 @@ using namespace std::chrono_literals;
 #define NUM_CAMERAS 8
 #define TOPIC_NS "rpi"
 #define TOPIC "optical_flow_vectors_"
-#define SERIAL_PORT "/dev/ttyAMA0"
 
 namespace optical_flow {
 
 class FlowAggregatorSubscriber : public rclcpp::Node {
  public:
   FlowAggregatorSubscriber() : Node("flow_aggregator_node") {
-    serial_port_ = std::make_unique<LibSerial::SerialStream>();
-
-    serial_port_->Open(SERIAL_PORT);
-    assert(serial_port_->IsOpen());
-
-    serial_port_->SetBaudRate(LibSerial::BaudRate::BAUD_9600);
-    serial_port_->SetCharacterSize(LibSerial::CharacterSize::CHAR_SIZE_8);
-    serial_port_->SetParity(LibSerial::Parity::PARITY_NONE);
-    serial_port_->SetStopBits(LibSerial::StopBits::STOP_BITS_1);
-    serial_port_->SetFlowControl(LibSerial::FlowControl::FLOW_CONTROL_NONE);
+    twist_pub_ = this->create_publisher<geometry_msgs::msg::TwistStamped>(
+        "/mavros/velocity_observer/velocity", 10);
 
     for (size_t i = 0; i < NUM_CAMERAS; ++i) {
       auto topic = TOPIC_NS + std::string("1/") + TOPIC + std::to_string(i);
@@ -44,7 +34,7 @@ class FlowAggregatorSubscriber : public rclcpp::Node {
         topic = TOPIC_NS + std::string("2/") + TOPIC + std::to_string(i - 4);
       }
 
-      // (dakre) TODO few ways to go about this, but simple straight forward way
+      // (dakre) few ways to go about this, but simple straight forward way
       // is to simply transform the flows from each camera to robot states and
       // send that to the pixhawk. So that will be the approach right now.
       flow_subs_.emplace_back(
@@ -63,22 +53,21 @@ class FlowAggregatorSubscriber : public rclcpp::Node {
                 }
 
                 // (dakre) TODO fill this out when we have it: y = Cx -> \hat{x}
-                // = C^{-1} y
+                // \hat{x} = C^{-1} y
                 Eigen::MatrixXd x_hat(6, 1);
                 x_hat << 0, 0, 0, 0, 0, 0;
 
-                std::stringstream ss;
-                ss << "[";
-                for (auto i = 0l; i < x_hat.rows(); ++i) {
-                  ss << x_hat(i, 0);
-                  if (i <= x_hat.rows() - 1) {
-                    ss << ",";
-                  }
-                }
-                ss << "]";
+                geometry_msgs::msg::TwistStamped twist;
+                twist.header.stamp = this->get_clock()->now();
+                twist.header.frame_id = "base_link";
+                twist.twist.linear.x = x_hat(3);
+                twist.twist.linear.y = x_hat(4);
+                twist.twist.linear.z = x_hat(5);
+                twist.twist.angular.x = x_hat(0);
+                twist.twist.angular.y = x_hat(1);
+                twist.twist.angular.z = x_hat(2);
 
-                *serial_port_ << ss.str();
-                serial_port_->flush();
+                twist_pub_->publish(twist);
               }));
     }
   }
@@ -86,7 +75,7 @@ class FlowAggregatorSubscriber : public rclcpp::Node {
  private:
   std::vector<rclcpp::Subscription<optical_flow_msgs::msg::Flows>::SharedPtr>
       flow_subs_;
-  std::unique_ptr<LibSerial::SerialStream> serial_port_;
+  rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr twist_pub_;
 };
 }  // namespace optical_flow
 

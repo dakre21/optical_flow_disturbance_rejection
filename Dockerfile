@@ -34,6 +34,6 @@ RUN curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o 
 
 RUN echo ". /opt/ros/jazzy/setup.bash" >> /root/.bashrc
 
-WORKDIR /workspaces
+WORKDIR /workspaces/optical_flow/src/ros_ws
 
 CMD ["bash"]

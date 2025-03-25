@@ -88,7 +88,8 @@ def generate_launch_description():
                     "imu",
                     "command",
                     "local_position",
-                    "vision_pose"
+                    "vision_pose",
+                    "velocity_observer"
                 ]
             },
         ],
