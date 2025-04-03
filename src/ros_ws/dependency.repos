@@ -3,6 +3,10 @@ repositories:
     type: git
     url: https://github.com/MOCAP4ROS2-Project/mocap4ros2_vicon.git
     version: rolling
+  mocap4ros2_optitrack:
+    type: git
+    url: https://github.com/MOCAP4ROS2-Project/mocap4ros2_optitrack.git
+    version: rolling
   mocap4r2_msgs:
     type: git
     url: https://github.com/MOCAP4ROS2-Project/mocap4r2_msgs.git
