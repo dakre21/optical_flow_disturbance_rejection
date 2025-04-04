@@ -16,7 +16,9 @@ and transforms them to robot states for the pixhawk
 
 using namespace std::chrono_literals;
 
+// (dakre) TODO make these configurable
 #define NUM_CAMERAS 8
+#define FEATURE_POINTS 100
 #define TOPIC_NS "rpi"
 #define TOPIC "optical_flow_vectors_"
 
@@ -30,6 +32,8 @@ class FlowAggregator : public rclcpp::Node {
     twist_pub_ = this->create_publisher<geometry_msgs::msg::TwistStamped>(
         "/mavros/velocity_observer/velocity", 10);
 
+    flow_mat_.resize(2, FEATURE_POINTS * NUM_CAMERAS);
+
     for (size_t i = 0; i < NUM_CAMERAS; ++i) {
       auto topic = TOPIC_NS + std::string("1/") + TOPIC + std::to_string(i);
       if (i >= 4) {
@@ -38,12 +42,16 @@ class FlowAggregator : public rclcpp::Node {
 
       flow_subs_.emplace_back(
           this->create_subscription<optical_flow_msgs::msg::Flows>(
-              topic, 10, [this](optical_flow_msgs::msg::Flows::SharedPtr msg) {
+              topic, 10, [&, this](optical_flow_msgs::msg::Flows::SharedPtr msg) {
                 assert(msg != nullptr);
-                assert(msg->u.size() == msg->v.size());
+                assert(msg->u.size() == msg->v.size() &&
+                       msg->v.size() == FEATURE_POINTS);
 
-                for (const auto& v : msg->v) v_.emplace_back(v);
-                for (const auto& u : msg->u) u_.emplace_back(u);
+                const int offset = i * FEATURE_POINTS;
+                for (int j = 0; j < FEATURE_POINTS; ++j) {
+                  flow_mat_(0, j + offset) = msg->u[j];
+                  flow_mat_(1, j + offset) = msg->v[j];
+                }
               }));
     }
 
@@ -53,17 +61,9 @@ class FlowAggregator : public rclcpp::Node {
 
  private:
   void TimerCallback() {
-    assert(u_.size() == v_.size());
-
-    Eigen::MatrixXd flow_mat(2, u_.size());
-    for (size_t i = 0; i < u_.size(); ++i) {
-      flow_mat(0, i) = u_[i];
-      flow_mat(1, i) = v_[i];
-    }
-
     // (dakre) TODO perform projection when we have it: y = Cx -> \hat{x}
-    // \hat{x} = C^{-1} y... furthermore, may need to truncate u and v to match
-    // expected size of the C linear mapping
+    // \hat{x} = C^{-1} y... furthermore, may need to truncate u and v to
+    // match expected size of the C linear mapping
     Eigen::MatrixXd x_hat(6, 1);
     x_hat << 0, 0, 0, 0, 0, 0;
 
@@ -79,11 +79,10 @@ class FlowAggregator : public rclcpp::Node {
 
     twist_pub_->publish(twist);
 
-    u_.clear();
-    v_.clear();
+    flow_mat_.setZero();
   }
 
-  std::vector<float> u_, v_;
+  Eigen::MatrixXd flow_mat_;
 
   std::vector<rclcpp::Subscription<optical_flow_msgs::msg::Flows>::SharedPtr>
       flow_subs_;
