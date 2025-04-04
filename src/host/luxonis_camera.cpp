@@ -28,8 +28,11 @@ LuxonisCamera::LuxonisCamera(
   // the optical flow
   camera_->initialControl.setAutoFocusMode(
       dai::CameraControl::AutoFocusMode::OFF);
-  // camera_->initialControl.setManualWhiteBalance(4000)
-  // camera_->initialControl.setManualExposure(20000, 800)
+  camera_->initialControl.setManualExposure(10000, 800);
+  camera_->initialControl.setAutoWhiteBalanceMode(
+      dai::CameraControl::AutoWhiteBalanceMode::AUTO);
+  camera_->initialControl.setManualFocus(128);
+  //camera_->setIspScale(1,2);
 
   video_->input.setBlocking(false);
   video_->input.setQueueSize(10);
@@ -62,12 +65,8 @@ void LuxonisCamera::Run(const int &frame_rate) {
     } catch (std::runtime_error &e) {
       const auto error_msg = std::string(e.what());
       std::cerr << id_ << " " << error_msg << std::endl;
-
-      if (error_msg.find("2") != std::string::npos) {
-        std::cerr << id_ << " FATAL connection to camera lost" << std::endl;
-        break;
-      }
-      continue;
+      std::cerr << "Exiting out of the loop" << std::endl;
+      break;
     }
 
     if (last_time.time_since_epoch().count() != 0) {

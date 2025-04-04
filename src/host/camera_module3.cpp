@@ -6,6 +6,8 @@ Description: CameraModule3 interface implementation to libcamera driver
 
 #include "camera_module3.h"
 
+#include <libcamera/control_ids.h>
+#include <libcamera/controls.h>
 #include <sys/mman.h>
 
 #include <chrono>
@@ -104,13 +106,27 @@ void CameraModule3::Run(const int &frame_rate) {
   int64_t frame_time = 1000000 / frame_rate;
   controls.set(libcamera::controls::FrameDurationLimits,
                libcamera::Span<const int64_t, 2>({frame_time, frame_time}));
+  /* (dakre) attempting to set configuration between both camera systems equivalent
+   * 1. Auto exposure off
+   * 2. Exposure time 10us
+   * 3. Gain ~= ISO (pixel sensitivity to light)
+   * 4. Manual focus (mid range)
+   * 5. Set constant contrast and sharpness
+   */
+  controls.set(libcamera::controls::AeEnable, false);
+  controls.set(libcamera::controls::ExposureTime, 10000);
+  controls.set(libcamera::controls::AnalogueGain, 1.5f);
+  controls.set(libcamera::controls::AfMode, libcamera::controls::AfModeManual);
+  controls.set(libcamera::controls::LensPosition, 0.5f);
+  controls.set(libcamera::controls::Sharpness, 0.0f);
+  controls.set(libcamera::controls::Contrast, 1.0f);
 
   if (camera_->start(&controls)) {
     throw std::runtime_error("Failed to start the camera");
   }
 
   const std::chrono::milliseconds frame_duration(1000 / frame_rate);
-  for (auto& r : requests) {
+  for (auto &r : requests) {
     camera_->queueRequest(r.get());
   }
   while (running_) {

@@ -17,7 +17,7 @@ namespace bip = boost::interprocess;
 
 // (dakre) TODO may need to play around with this during testing
 #define NUM_POINTS 100
-#define FLOW_THRESHOLD 5
+#define FLOW_THRESHOLD 20
 
 namespace camera_driver {
 class CameraBase {
@@ -98,11 +98,10 @@ class CameraBase {
       cv::Mat diff;
       cv::absdiff(*last_frame_, gray, diff);
 
-      int threshold_value = 10;
-      cv::Mat mask = diff < threshold_value;
+      cv::Mat mask = diff > FLOW_THRESHOLD;
       int count = cv::countNonZero(mask);
-      std::cout << "Number of pixels with value < " << threshold_value << " : "
-                << count << std::endl;
+      std::cout << id_ << " number of pixels with value > " << FLOW_THRESHOLD
+                << " : " << count << std::endl;
       cv::imshow("Image", diff);
       cv::waitKey(0);
 #endif

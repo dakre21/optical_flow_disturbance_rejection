@@ -89,7 +89,7 @@ def generate_launch_description():
                     "command",
                     "local_position",
                     "vision_pose",
-                    "velocity_observer"
+                    "velocity_observer",
                 ]
             },
         ],
@@ -109,13 +109,12 @@ def generate_launch_description():
         condition=IfCondition(use_mocap),
     )
 
-
     mocap_to_mavros_node = Node(
         name="relay_node",
         package="mocap_to_mavros",
         executable="relay_node",
         namespace="",
-        output="screen"
+        output="screen",
     )
 
     optical_flow_node = Node(
@@ -132,7 +131,7 @@ def generate_launch_description():
         name="flow_aggregator_node",
         package="optical_flow",
         executable="flow_aggregator_node",
-        namespace='',
+        namespace="",
         output="screen",
     )
 
