@@ -16,12 +16,17 @@ TODO:
 ## Instructions (Build & Run)
 **install dependencies**
 1. ```./setup.sh```
+1. Luxonis udev control
+    1. ```sudo wget -qO- https://docs.luxonis.com/install_dependencies.sh | bash```
+    1. ```sudo cp host/80-movidius.rules /etc/udev/rules.d```
+    1. ```sudo udevadm control --reload-rules```
+    1. ```sudo udevadm trigger```
 
 **optical_flow processes running in docker**
 1. ```docker build --no-cache -t bprl/optical-flow-ros:latest .```
 1. ```docker compose up``` and ```docker compose down``` to shut down
     1. On the raspberry pi it should be ```docker-compose up -d``` followed by ```docker container ls``` get the container id then shell into it ```docker exec -it <container-id> bash```
-1. In the container build the ros2 source simply by running ```colcon build --symlink-install``` in the cwd of docker
+1. In the container build the ros2 source simply by running ```colcon build --symlink-install``` in the cwd of docker on pi add ```--packages-skip mocap4r2_optitrack_driver``` as this isn't supported on arm
     1. Ensure that dependencies have been imported by ```vcs import src < dependency.repos``` either on host or in docker container
 1. To run do the following:
     1. ```ros2 launch optical_flow_bringup bringup.launch.py``` will launch everything including mavros and mocap related nodes
@@ -36,6 +41,8 @@ TODO:
 1. Host code ```mkdir host/build & cd host/build```
 1. ```cmake .. & make -j```
 1. ```./optical_flow``` with all 4 cameras connected (2x camera module 3 and 2x luxonis oak)
+    1. To test rpi cameras ```libcamera-hello --list-cameras```
+    1. To test luxonis cameras run the debug exe ```./luxonis_debug```
 
 **SITL ardupilot simulation**
 1. Clone ardupilot from [ardupilot](https://github.com/ArduPilot/ardupilot)

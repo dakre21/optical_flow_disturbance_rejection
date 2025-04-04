@@ -53,7 +53,7 @@ def generate_launch_description():
         "namespace", default_value="mavros", description="Namespace for MAVROS"
     )
     declare_use_mocap = DeclareLaunchArgument(
-        "use_mocap", default_value="True", description="Use mocap"
+        "use_mocap", default_value="False", description="Use mocap"
     )
     declare_use_optical_flow = DeclareLaunchArgument(
         "use_optical_flow", default_value="True", description="Use optical_flow"
@@ -96,18 +96,18 @@ def generate_launch_description():
         respawn=respawn_mavros,
     )
 
-    #mocap4r2_launch = IncludeLaunchDescription(
-    #    PythonLaunchDescriptionSource(
-    #        PathJoinSubstitution(
-    #            [
-    #                FindPackageShare("mocap4r2_optitrack_driver"),
-    #                "launch",
-    #                "optitrack2.launch.py",
-    #            ]
-    #        )
-    #    ),
-    #    condition=IfCondition(use_mocap),
-    #)
+    mocap4r2_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            PathJoinSubstitution(
+                [
+                    FindPackageShare("mocap4r2_optitrack_driver"),
+                    "launch",
+                    "optitrack2.launch.py",
+                ]
+            )
+        ),
+        condition=IfCondition(use_mocap),
+    )
 
 
     mocap_to_mavros_node = Node(
@@ -132,7 +132,7 @@ def generate_launch_description():
         name="flow_aggregator_node",
         package="optical_flow",
         executable="flow_aggregator_node",
-        namespace=optical_flow_ns,
+        namespace='',
         output="screen",
     )
 
@@ -151,7 +151,7 @@ def generate_launch_description():
             declare_use_optical_flow_aggregator,
             declare_optical_flow_ns,
             mavros_node,
-            #mocap4r2_launch,
+            mocap4r2_launch,
             mocap_to_mavros_node,
             optical_flow_node,
             optical_flow_aggregator_node,

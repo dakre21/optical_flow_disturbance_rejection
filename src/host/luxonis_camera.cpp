@@ -28,8 +28,8 @@ LuxonisCamera::LuxonisCamera(
   // the optical flow
   camera_->initialControl.setAutoFocusMode(
       dai::CameraControl::AutoFocusMode::OFF);
-  //camera_->initialControl.setManualWhiteBalance(4000)
-  //camera_->initialControl.setManualExposure(20000, 800)
+  // camera_->initialControl.setManualWhiteBalance(4000)
+  // camera_->initialControl.setManualExposure(20000, 800)
 
   video_->input.setBlocking(false);
   video_->input.setQueueSize(10);
@@ -52,12 +52,23 @@ void LuxonisCamera::Run(const int &frame_rate) {
   while (running_) {
     auto now = std::chrono::steady_clock::now();
 
-    auto video_in = data_output_queue->get<dai::ImgFrame>();
-    auto bgr = video_in->getCvFrame();
+    try {
+      auto video_in = data_output_queue->get<dai::ImgFrame>();
+      auto bgr = video_in->getCvFrame();
 
-    cv::Mat gray;
-    cv::cvtColor(bgr, gray, cv::COLOR_BGR2GRAY);
-    CalculateOpticalFlow(std::move(gray));
+      cv::Mat gray;
+      cv::cvtColor(bgr, gray, cv::COLOR_BGR2GRAY);
+      CalculateOpticalFlow(std::move(gray));
+    } catch (std::runtime_error &e) {
+      const auto error_msg = std::string(e.what());
+      std::cerr << id_ << " " << error_msg << std::endl;
+
+      if (error_msg.find("2") != std::string::npos) {
+        std::cerr << id_ << " FATAL connection to camera lost" << std::endl;
+        break;
+      }
+      continue;
+    }
 
     if (last_time.time_since_epoch().count() != 0) {
       const auto frame_time =
