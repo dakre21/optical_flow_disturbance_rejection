@@ -32,8 +32,13 @@ RUN curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o 
     && apt install -y python3-argcomplete \
     && rm -rf /var/lib/apt/lists/*
 
-RUN echo ". /opt/ros/jazzy/setup.bash" >> /root/.bashrc
-
 WORKDIR /workspaces/optical_flow/src/ros_ws
 
-CMD ["bash"]
+COPY src/ros_ws .
+
+RUN . /opt/ros/jazzy/setup.sh \
+    && vcs import src < dependency.repos \
+    && colcon build --symlink-install --packages-skip mocap4r2_optitrack_driver 
+
+RUN . /opt/ros/jazzy/setup.sh \
+    && ros2 run mavros install_geographiclib_datasets.sh

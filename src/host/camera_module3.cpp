@@ -46,6 +46,7 @@ void CameraModule3::RequestComplete(libcamera::Request *request) {
     return;
   }
   auto now = std::chrono::steady_clock::now();
+#if 0
   if (last_time_.time_since_epoch().count() != 0) {
     const auto frame_time =
         std::chrono::duration<double>(now - last_time_).count();
@@ -53,6 +54,7 @@ void CameraModule3::RequestComplete(libcamera::Request *request) {
     std::cout << id_ << "- Estimated FPS: " << std::to_string(fps) << std::endl;
   }
   last_time_ = now;
+#endif
 
   for (auto [stream, buffer] : request->buffers()) {
     void *memory =
@@ -122,8 +124,10 @@ void CameraModule3::Run(const int &frame_rate) {
   controls.set(libcamera::controls::Contrast, 1.0f);
 
   if (camera_->start(&controls)) {
-    throw std::runtime_error("Failed to start the camera");
+    throw std::runtime_error("Failed to start the RPi camera");
   }
+
+  std::cout << id_ << "- Started streaming rpi camera" << std::endl;
 
   const std::chrono::milliseconds frame_duration(1000 / frame_rate);
   for (auto &r : requests) {

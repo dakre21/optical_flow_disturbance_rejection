@@ -9,7 +9,9 @@ services:
     privileged: true
     stdin_open: true
     tty: true
+    entrypoint: /bin/bash
+    command: -c ". install/setup.bash && ros2 launch optical_flow_bringup bringup.launch.py"
     volumes:
-      - ".:/workspaces/optical_flow"
+      #- ".:/workspaces/optical_flow"
       - "/dev/*:/dev/*"
 

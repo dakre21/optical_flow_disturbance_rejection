@@ -37,9 +37,9 @@ class RelayNode(Node):
         elif not self.rigid_bodies_msg:
             self.get_logger().error("No rigid bodies message recv")
         else:
-            msg.pose.position.x = msg.rigidbodies[0].pose.position.x
-            msg.pose.position.y = msg.rigidbodies[0].pose.position.y
-            msg.pose.position.z = msg.rigidbodies[0].pose.position.z
+            msg.pose.position.x = self.rigid_bodies_msg.rigidbodies[0].pose.position.x
+            msg.pose.position.y = self.rigid_bodies_msg.rigidbodies[0].pose.position.y
+            msg.pose.position.z = self.rigid_bodies_msg.rigidbodies[0].pose.position.z
 
             self.rigid_bodies_msg = None
 

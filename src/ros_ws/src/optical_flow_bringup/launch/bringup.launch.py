@@ -21,9 +21,8 @@ def generate_launch_description():
     tgt_component = LaunchConfiguration("tgt_component")
     log_output = LaunchConfiguration("log_output")
     fcu_protocol = LaunchConfiguration("fcu_protocol")
-    respawn_mavros = LaunchConfiguration("respawn_mavros")
+    respawn_nodes = LaunchConfiguration("respawn_nodes")
     namespace = LaunchConfiguration("namespace")
-    use_mocap = LaunchConfiguration("use_mocap")
     use_optical_flow = LaunchConfiguration("use_optical_flow")
     use_optical_flow_aggregator = LaunchConfiguration("use_optical_flow_aggregator")
     optical_flow_ns = LaunchConfiguration("optical_flow_ns")
@@ -41,19 +40,16 @@ def generate_launch_description():
         "tgt_component", default_value="1", description="Target component ID"
     )
     declare_log_output = DeclareLaunchArgument(
-        "log_output", default_value="screen", description="Log output"
+        "log_output", default_value="both", description="Log output"
     )
     declare_fcu_protocol = DeclareLaunchArgument(
         "fcu_protocol", default_value="v2.0", description="FCU protocol version"
     )
-    declare_respawn_mavros = DeclareLaunchArgument(
-        "respawn_mavros", default_value="False", description="Respawn MAVROS"
+    declare_respawn_nodes = DeclareLaunchArgument(
+        "respawn_nodes", default_value="True", description="Respawn Nodes"
     )
     declare_mavros_ns = DeclareLaunchArgument(
         "namespace", default_value="mavros", description="Namespace for MAVROS"
-    )
-    declare_use_mocap = DeclareLaunchArgument(
-        "use_mocap", default_value="False", description="Use mocap"
     )
     declare_use_optical_flow = DeclareLaunchArgument(
         "use_optical_flow", default_value="True", description="Use optical_flow"
@@ -93,28 +89,7 @@ def generate_launch_description():
                 ]
             },
         ],
-        respawn=respawn_mavros,
-    )
-
-    mocap4r2_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            PathJoinSubstitution(
-                [
-                    FindPackageShare("mocap4r2_optitrack_driver"),
-                    "launch",
-                    "optitrack2.launch.py",
-                ]
-            )
-        ),
-        condition=IfCondition(use_mocap),
-    )
-
-    mocap_to_mavros_node = Node(
-        name="relay_node",
-        package="mocap_to_mavros",
-        executable="relay_node",
-        namespace="",
-        output="screen",
+        respawn=respawn_nodes,
     )
 
     optical_flow_node = Node(
@@ -123,7 +98,8 @@ def generate_launch_description():
         package="optical_flow",
         executable="optical_flow_node",
         namespace=optical_flow_ns,
-        output="screen",
+        output=log_output,
+        respawn=respawn_nodes,
     )
 
     optical_flow_aggregator_node = Node(
@@ -133,6 +109,7 @@ def generate_launch_description():
         executable="flow_aggregator_node",
         namespace="",
         output="screen",
+        respawn=respawn_nodes,
     )
 
     return LaunchDescription(
@@ -143,15 +120,12 @@ def generate_launch_description():
             declare_tgt_component,
             declare_log_output,
             declare_fcu_protocol,
-            declare_respawn_mavros,
+            declare_respawn_nodes,
             declare_mavros_ns,
-            declare_use_mocap,
             declare_use_optical_flow,
             declare_use_optical_flow_aggregator,
             declare_optical_flow_ns,
             mavros_node,
-            mocap4r2_launch,
-            mocap_to_mavros_node,
             optical_flow_node,
             optical_flow_aggregator_node,
         ]

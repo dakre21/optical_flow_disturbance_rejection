@@ -32,7 +32,7 @@ LuxonisCamera::LuxonisCamera(
   camera_->initialControl.setAutoWhiteBalanceMode(
       dai::CameraControl::AutoWhiteBalanceMode::AUTO);
   camera_->initialControl.setManualFocus(128);
-  //camera_->setIspScale(1,2);
+  // camera_->setIspScale(1,2);
 
   video_->input.setBlocking(false);
   video_->input.setQueueSize(10);
@@ -41,7 +41,8 @@ LuxonisCamera::LuxonisCamera(
 
   device_ = std::make_shared<dai::Device>(pipeline_, device_info,
                                           dai::UsbSpeed::SUPER_PLUS);
-  std::cout << id_ << "- Created pipeline for device: " << device_->getMxId()
+  std::cout << id_
+            << "- Created pipeline for luxonis device: " << device_->getMxId()
             << std::endl;
 }
 
@@ -69,6 +70,7 @@ void LuxonisCamera::Run(const int &frame_rate) {
       break;
     }
 
+#if 0
     if (last_time.time_since_epoch().count() != 0) {
       const auto frame_time =
           std::chrono::duration<double>(now - last_time).count();
@@ -77,6 +79,7 @@ void LuxonisCamera::Run(const int &frame_rate) {
                 << std::endl;
     }
     last_time = now;
+#endif
 
     std::this_thread::sleep_for(frame_duration);
   }

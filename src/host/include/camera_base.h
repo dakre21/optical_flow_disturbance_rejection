@@ -114,8 +114,8 @@ class CameraBase {
       for (size_t i = 0; i < feature_points_.size(); ++i) {
         float u_pt = 0, v_pt = 0;
         if (1 == status[i]) {
-          u_pt = feature_points_[i].x - new_points[i].x;
-          v_pt = feature_points_[i].y - new_points[i].y;
+          u_pt = new_points[i].x - feature_points_[i].x;
+          v_pt = new_points[i].y - feature_points_[i].y;
           if (std::hypot(u_pt, v_pt) >= FLOW_THRESHOLD) {
             u_pt = 0;
             v_pt = 0;
