@@ -16,14 +16,12 @@ publishes them
 #include <string>
 #include <vector>
 
+#include "optical_flow/optical_flow_constants.h"
 #include "optical_flow_msgs/msg/flows.hpp"
 #include "rclcpp/rclcpp.hpp"
 
 using namespace std::chrono_literals;
 namespace bip = boost::interprocess;
-
-#define NUM_CAMERAS 4
-#define NUM_POINTS 100
 
 namespace optical_flow {
 class OpticalFlowPublisher : public rclcpp::Node {
@@ -31,7 +29,8 @@ class OpticalFlowPublisher : public rclcpp::Node {
   OpticalFlowPublisher()
       : Node("optical_flow_publisher"), num_points_(NUM_POINTS) {
     const std::string pub_name = "optical_flow_vectors_";
-    for (int i = 0; i < NUM_CAMERAS; ++i) {
+    const int ncams = NUM_CAMERAS / 2;
+    for (int i = 0; i < ncams; ++i) {
       const auto shm_name = pub_name + std::to_string(i);
       flow_pubs_.emplace_back(
           this->create_publisher<optical_flow_msgs::msg::Flows>(shm_name, 10));
@@ -59,8 +58,9 @@ class OpticalFlowPublisher : public rclcpp::Node {
 
  private:
   void TimerCallback() {
-    assert(flow_pubs_.size() == NUM_CAMERAS);
-    assert(regions_.size() == NUM_CAMERAS);
+    const int ncams = NUM_CAMERAS / 2;
+    assert(flow_pubs_.size() == ncams);
+    assert(regions_.size() == ncams);
 
     for (size_t i = 0; i < flow_pubs_.size(); ++i) {
       const auto& pub = flow_pubs_[i];

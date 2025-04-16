@@ -11,14 +11,11 @@ and transforms them to robot states for the pixhawk
 #include <vector>
 
 #include "geometry_msgs/msg/twist_stamped.hpp"
+#include "optical_flow/optical_flow_constants.h"
 #include "optical_flow_msgs/msg/flows.hpp"
 #include "rclcpp/rclcpp.hpp"
 
 using namespace std::chrono_literals;
-
-#define NUM_CAMERAS 8
-#define TOPIC_NS "rpi"
-#define TOPIC "optical_flow_vectors_"
 
 namespace optical_flow {
 
@@ -41,6 +38,7 @@ class FlowAggregator : public rclcpp::Node {
               topic, 10, [this](optical_flow_msgs::msg::Flows::SharedPtr msg) {
                 assert(msg != nullptr);
                 assert(msg->u.size() == msg->v.size());
+                assert(msg->u.size() == NUM_POINTS);
 
                 for (const auto& v : msg->v) v_.emplace_back(v);
                 for (const auto& u : msg->u) u_.emplace_back(u);
@@ -75,7 +73,7 @@ class FlowAggregator : public rclcpp::Node {
     twist.twist.linear.z = x_hat(2);
 
     // (dakre) bastardizing angular vel message with num cam inputs
-    twist.twist.angular.z = u_.size();
+    twist.twist.angular.z = u_.size() / NUM_POINTS;
 
     twist_pub_->publish(twist);
 
