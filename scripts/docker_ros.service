@@ -1,0 +1,9 @@
+[Unit]
+Description=Docker ROS Service
+After=network.target # Ensure network is up first
+
+[Service]
+ExecStart=/home/pi/optical_flow_disturbance_rejection/scripts/run_docker.sh
+
+[Install]
+WantedBy=multi-user.target # Start on multi-user target

@@ -70,12 +70,12 @@ class FlowAggregator : public rclcpp::Node {
     geometry_msgs::msg::TwistStamped twist;
     twist.header.stamp = this->get_clock()->now();
     twist.header.frame_id = "base_link";
-    twist.twist.linear.x = x_hat(3);
-    twist.twist.linear.y = x_hat(4);
-    twist.twist.linear.z = x_hat(5);
-    twist.twist.angular.x = x_hat(0);
-    twist.twist.angular.y = x_hat(1);
-    twist.twist.angular.z = x_hat(2);
+    twist.twist.linear.x = x_hat(0);
+    twist.twist.linear.y = x_hat(1);
+    twist.twist.linear.z = x_hat(2);
+
+    // (dakre) bastardizing angular vel message with num cam inputs
+    twist.twist.angular.z = u_.size();
 
     twist_pub_->publish(twist);
 

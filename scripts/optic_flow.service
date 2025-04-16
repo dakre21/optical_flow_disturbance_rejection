@@ -1,0 +1,9 @@
+[Unit]
+Description=Optic Flow Service
+After=network.target
+
+[Service]
+ExecStart=/home/pi/optical_flow_disturbance_rejection/scripts/run_optic_flow.sh
+
+[Install]
+WantedBy=multi-user.target

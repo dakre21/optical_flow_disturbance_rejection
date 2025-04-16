@@ -1,0 +1,1 @@
+1. To check log from systemd script use: journalctl -u your_service_name.service
