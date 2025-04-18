@@ -1,1 +1,10 @@
-1. To check log from systemd script use: journalctl -u your_service_name.service
+1. Start/stop service
+- sudo systemctl stop your_service_name
+- sudo systemctl start your_service_name
+* Services are optic_flow & docker_ros *
+2. To check status of systemd service:
+- sudo systemctl status your_service_name
+- Log from systemd script use: journalctl -u your_service_name.service
+3. Change wifi client on boot / cli
+- Edit /etc/wpa_supplicant/wpa_supplicant.conf
+

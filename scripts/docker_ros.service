@@ -1,9 +1,11 @@
 [Unit]
 Description=Docker ROS Service
-After=network.target # Ensure network is up first
+After=network-online.target
+Wants=network-online.target
 
 [Service]
+ExecStartPre=/bin/udevadm settle
 ExecStart=/home/pi/optical_flow_disturbance_rejection/scripts/run_docker.sh
 
 [Install]
-WantedBy=multi-user.target # Start on multi-user target
+WantedBy=multi-user.target

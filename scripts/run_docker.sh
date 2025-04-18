@@ -2,13 +2,18 @@
 
 echo "Starting Docker Container"
 
-cd ..
+cd /home/pi/optical_flow_disturbance_rejection
+docker stop $(docker ps -a -q)
+docker-compose down
+docker-compose up
 
-while true; do
-	if [ pgrep $1 ]; then
-    echo "ROS Docker Container is not running, restarting it"
-		cd /home/pi/optical_flow_disturbance_rejection
-		docker-compose up &
-  fi
-	sleep 5
-done
+#cd ..
+#
+#while true; do
+#	if [ pgrep $1 ]; then
+#    echo "ROS Docker Container is not running, restarting it"
+#		cd /home/pi/optical_flow_disturbance_rejection
+#		docker-compose up &
+#  fi
+#	sleep 5
+#done

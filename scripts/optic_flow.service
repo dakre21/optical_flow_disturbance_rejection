@@ -1,8 +1,10 @@
 [Unit]
 Description=Optic Flow Service
-After=network.target
+After=network-online.target
+Wants=network-online.target
 
 [Service]
+ExecStartPre=/bin/udevadm settle
 ExecStart=/home/pi/optical_flow_disturbance_rejection/scripts/run_optic_flow.sh
 
 [Install]

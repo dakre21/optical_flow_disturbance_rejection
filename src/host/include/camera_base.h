@@ -10,6 +10,7 @@ Description: Base camera class to run optical flow on each frame
 #include <boost/interprocess/shared_memory_object.hpp>
 #include <boost/interprocess/sync/named_semaphore.hpp>
 #include <cmath>
+#include <cstdio>
 #include <opencv2/opencv.hpp>
 #include <opencv2/video/tracking.hpp>
 
@@ -23,7 +24,7 @@ namespace camera_driver {
 class CameraBase {
  public:
   CameraBase(const int &width, const int &height, const std::string &id)
-      : id_(id) {
+      : id_(id), frame_num_(0) {
     assert(width == 640 && height == 480);
     auto linspace = [&](auto start, auto end, auto num) {
       assert(num > 0);
@@ -94,22 +95,19 @@ class CameraBase {
       std::vector<unsigned char> status;
       std::vector<cv::Point2f> new_points;
 
-#if 0
-      cv::Mat diff;
-      cv::absdiff(*last_frame_, gray, diff);
-
-      cv::Mat mask = diff > FLOW_THRESHOLD;
-      int count = cv::countNonZero(mask);
-      std::cout << id_ << " number of pixels with value > " << FLOW_THRESHOLD
-                << " : " << count << std::endl;
-      cv::imshow("Image", diff);
-      cv::waitKey(0);
-#endif
-
       cv::GaussianBlur(*last_frame_, *last_frame_, cv::Size(5, 5), 0);
       cv::GaussianBlur(gray, gray, cv::Size(5, 5), 0);
 
       lk_->calc(*last_frame_, gray, feature_points_, new_points, status);
+
+#if DEBUG
+      const auto annotated_image =
+          DrawOpticalFlow(new_points, feature_points_, gray);
+      char filename[100];
+      std::sprintf(filename, "annotated_frame_%04d_id_%02d.jpg", frame_num_,
+                   id_);
+      cv::imwrite(filename, annotated_image);
+#endif
 
       for (size_t i = 0; i < feature_points_.size(); ++i) {
         float u_pt = 0, v_pt = 0;
@@ -141,12 +139,38 @@ class CameraBase {
     }
 
     last_frame_ = std::make_unique<cv::Mat>(std::move(gray));
+    frame_num_++;
   }
 
  protected:
   std::string id_;
 
  private:
+  cv::Mat DrawOpticalFlow(const std::vector<cv::Point2f> &good_new,
+                          const std::vector<cv::Point2f> &good_old,
+                          cv::Mat image) {
+    if (good_new.empty() || good_old.empty()) {
+      return image;
+    }
+
+    for (size_t i = 0; i < good_new.size(); ++i) {
+      cv::Point2f new_pt = good_new[i];
+      cv::Point2f old_pt = good_old[i];
+
+      int a = static_cast<int>(new_pt.x);
+      int b = static_cast<int>(new_pt.y);
+      int c = static_cast<int>(old_pt.x);
+      int d = static_cast<int>(old_pt.y);
+
+      cv::line(image, cv::Point(a, b), cv::Point(c, d), cv::Scalar(0, 255, 0),
+               2);
+      cv::circle(image, cv::Point(a, b), 3, cv::Scalar(0, 0, 255), -1);
+    }
+
+    return image;
+  }
+
+  size_t frame_num_;
   std::vector<cv::Point2f> feature_points_;
   cv::Ptr<cv::SparsePyrLKOpticalFlow> lk_;
   std::unique_ptr<cv::Mat> last_frame_;
