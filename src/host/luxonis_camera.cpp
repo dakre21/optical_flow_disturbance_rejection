@@ -28,10 +28,10 @@ LuxonisCamera::LuxonisCamera(
   // the optical flow
   camera_->initialControl.setAutoFocusMode(
       dai::CameraControl::AutoFocusMode::OFF);
-  camera_->initialControl.setManualExposure(10000, 800);
+  camera_->initialControl.setManualExposure(1500, 800);
   camera_->initialControl.setAutoWhiteBalanceMode(
       dai::CameraControl::AutoWhiteBalanceMode::AUTO);
-  camera_->initialControl.setManualFocus(128);
+  camera_->initialControl.setManualFocus(255);
   // camera_->setIspScale(1,2);
 
   video_->input.setBlocking(false);

@@ -23,22 +23,28 @@ using namespace std::chrono_literals;
 
 class FlowAggregator : public rclcpp::Node {
  public:
-  FlowAggregator() : Node("flow_aggregator_node") {
+  FlowAggregator()
+      : Node("flow_aggregator_node"), type_(ProjectionScheme::CONCENTRIC) {
     twist_pub_ = this->create_publisher<geometry_msgs::msg::TwistStamped>(
         "/mavros/velocity_observer/velocity", 10);
 
-    for (size_t i = 0; i < NUM_CAMERAS; ++i) {
-      auto topic = TOPIC_NS + std::string("1/") + TOPIC + std::to_string(i);
-      if (i >= 4) {
-        topic = TOPIC_NS + std::string("2/") + TOPIC + std::to_string(i - 4);
+    num_points_ = ProjectionScheme::CONCENTRIC == type_ ? NUM_POINTS / NUM_RINGS
+                                                      : NUM_POINTS;
+
+    int pi = 1, ncam = 0;
+    for (size_t i = 0; i < NUM_CAMERAS_PER_PI * NUM_PIS; ++i) {
+      if (i != 0 && i % NUM_PIS == 0) {
+        ncam = 0, pi++;
       }
+      auto topic =
+          TOPIC_NS + std::to_string(pi) + "/" + TOPIC + std::to_string(ncam++);
 
       flow_subs_.emplace_back(
           this->create_subscription<optical_flow_msgs::msg::Flows>(
               topic, 10, [this](optical_flow_msgs::msg::Flows::SharedPtr msg) {
                 assert(msg != nullptr);
                 assert(msg->u.size() == msg->v.size());
-                assert(msg->u.size() == NUM_POINTS);
+                assert(msg->u.size() == num_points_);
 
                 for (const auto& v : msg->v) v_.emplace_back(v);
                 for (const auto& u : msg->u) u_.emplace_back(u);
@@ -80,6 +86,9 @@ class FlowAggregator : public rclcpp::Node {
     u_.clear();
     v_.clear();
   }
+
+  size_t num_points_;
+  int type_;
 
   std::vector<float> u_, v_;
 

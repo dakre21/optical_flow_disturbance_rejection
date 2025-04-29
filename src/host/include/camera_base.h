@@ -13,46 +13,22 @@ Description: Base camera class to run optical flow on each frame
 #include <cstdio>
 #include <opencv2/opencv.hpp>
 #include <opencv2/video/tracking.hpp>
+#include "optical_flow_constants.h"
 
 namespace bip = boost::interprocess;
-
-// (dakre) TODO may need to play around with this during testing
-#define NUM_POINTS 100
-#define FLOW_THRESHOLD 20
+using namespace optical_flow;
 
 namespace camera_driver {
+enum ProjectionScheme { RECTILINEAR, CONCENTRIC };
+
 class CameraBase {
  public:
-  CameraBase(const int &width, const int &height, const std::string &id)
+  CameraBase(const int &width, const int &height, const std::string &id,
+             int type = ProjectionScheme::CONCENTRIC)
       : id_(id), frame_num_(0) {
     assert(width == 640 && height == 480);
-    auto linspace = [&](auto start, auto end, auto num) {
-      assert(num > 0);
 
-      std::vector<double> result(num);
-      auto step = (end - start) / num;
-      for (auto i = 0; i < num; ++i) {
-        result[i] = start + i * step;
-      }
-      return result;
-    };
-
-    const float ar = (float)width / (float)height;
-    const int num_x = 10 * ar;
-    const int num_y = 10 / ar;
-    assert(num_x * num_y <= NUM_POINTS);
-
-    const auto x_points = linspace(0, width - 1, num_x);
-    const auto y_points = linspace(0, height - 1, num_y);
-
-    feature_points_.resize(NUM_POINTS);
-
-    int idx = 0;
-    for (const auto &y : y_points) {
-      for (const auto &x : x_points) {
-        feature_points_[idx++] = cv::Point2f(x, y);
-      }
-    }
+    CreateFeaturePoints(type, width, height);
 
     const auto win_size = cv::Size(15, 15);
     const auto criteria = cv::TermCriteria(
@@ -87,10 +63,8 @@ class CameraBase {
 
   virtual void Run(const int &frame_rate) = 0;
 
-  virtual void CalculateOpticalFlow(cv::Mat &&gray) {
-    std::vector<float> u(feature_points_.size());
-    std::vector<float> v(feature_points_.size());
-
+  virtual void CalculateOpticalFlow(cv::Mat &&gray,
+                                    int type = ProjectionScheme::CONCENTRIC) {
     if (last_frame_ != nullptr) {
       std::vector<unsigned char> status;
       std::vector<cv::Point2f> new_points;
@@ -100,15 +74,22 @@ class CameraBase {
 
       lk_->calc(*last_frame_, gray, feature_points_, new_points, status);
 
-#if DEBUG
+#if DEBUG_CV
       const auto annotated_image =
           DrawOpticalFlow(new_points, feature_points_, gray);
       char filename[100];
       std::sprintf(filename, "annotated_frame_%04d_id_%02d.jpg", frame_num_,
                    id_);
-      cv::imwrite(filename, annotated_image);
+      // cv::imwrite(filename, annotated_image);
+      cv::imshow("image", annotated_image);
+      cv::waitKey(0);
 #endif
 
+      std::vector<float> u(feature_points_.size());
+      std::vector<float> v(feature_points_.size());
+      std::vector<float> averaged_theta_u;
+      std::vector<float> averaged_theta_v;
+      const int n_theta = NUM_POINTS / NUM_RINGS;
       for (size_t i = 0; i < feature_points_.size(); ++i) {
         float u_pt = 0, v_pt = 0;
         if (1 == status[i]) {
@@ -121,16 +102,34 @@ class CameraBase {
         }
         u[i] = u_pt;
         v[i] = v_pt;
-        // std::cout << u[i] << ", " << v[i] << std::endl;
+
+        if (ProjectionScheme::CONCENTRIC == type) {
+          if (i != 0 && (i+1) % NUM_RINGS == 0) {
+            float sum_u = 0, sum_v = 0;
+            for (size_t j = i - n_theta; j < i + n_theta; ++j) {
+              sum_u += u[j], sum_v += v[j];
+            }
+            averaged_theta_u.emplace_back(sum_u / n_theta);
+            averaged_theta_v.emplace_back(sum_v / n_theta);
+          }
+        }
       }
 
       if (writer_sem_->try_wait()) {
-        const size_t num_bytes = feature_points_.size() * sizeof(float);
-        std::memcpy(shm_region_->get_address(), u.data(), num_bytes);
-        std::memcpy(
-            static_cast<std::byte *>(shm_region_->get_address()) + num_bytes,
-            v.data(), num_bytes);
-
+        if (ProjectionScheme::CONCENTRIC == type) {
+          assert(averaged_theta_v.size() == n_theta);
+          const size_t num_bytes = averaged_theta_v.size() * sizeof(float);
+          std::memcpy(shm_region_->get_address(), averaged_theta_u.data(), num_bytes);
+          std::memcpy(
+              static_cast<std::byte *>(shm_region_->get_address()) + num_bytes,
+              averaged_theta_v.data(), num_bytes);
+        } else {
+          const size_t num_bytes = feature_points_.size() * sizeof(float);
+          std::memcpy(shm_region_->get_address(), u.data(), num_bytes);
+          std::memcpy(
+              static_cast<std::byte *>(shm_region_->get_address()) + num_bytes,
+              v.data(), num_bytes);
+        }
         reader_sem_->post();
       } else {
         std::cout << "Reader " << id_ << " has lock dropping frame"
@@ -146,6 +145,60 @@ class CameraBase {
   std::string id_;
 
  private:
+  void CreateFeaturePoints(const int &type, const int &width,
+                           const int &height) {
+    auto linspace = [&](auto start, auto end, auto num) {
+      assert(num > 0);
+
+      std::vector<double> result(num);
+      auto step = (end - start) / num;
+      for (auto i = 0; i < num; ++i) {
+        result[i] = start + i * step;
+      }
+      return result;
+    };
+
+    feature_points_.resize(NUM_POINTS);
+
+    int idx = 0;
+    switch (type) {
+      case ProjectionScheme::RECTILINEAR: {
+        const float ar = (float)width / (float)height;
+        const int num_x = 10 * ar;
+        const int num_y = 10 / ar;
+        assert(num_x * num_y <= NUM_POINTS);
+
+        const auto x_points = linspace(0, width - 1, num_x);
+        const auto y_points = linspace(0, height - 1, num_y);
+
+        for (const auto &y : y_points) {
+          for (const auto &x : x_points) {
+            feature_points_[idx++] = cv::Point2f(x, y);
+          }
+        }
+        break;
+      }
+      case ProjectionScheme::CONCENTRIC: {
+        const auto mn = std::min(width, height);
+        assert((NUM_POINTS / NUM_RINGS) % 2 == 0);
+        const auto theta = linspace(0, 2 * M_PI, NUM_POINTS / NUM_RINGS);
+        const int cy = int(height / 2);
+        const int cx = int(width / 2);
+        for (const auto &t : theta) {
+          const auto radii = linspace(0.1 * mn, 0.6 * mn, NUM_RINGS);
+          for (const auto &r : radii) {
+            const auto x = cx + r * cos(t);
+            const auto y = cy + r * sin(t);
+            feature_points_[idx++] = cv::Point2f(x, y);
+          }
+        }
+        break;
+      }
+      default:
+        throw std::logic_error("Bad projection scheme");
+    }
+  }
+
   cv::Mat DrawOpticalFlow(const std::vector<cv::Point2f> &good_new,
                           const std::vector<cv::Point2f> &good_old,
                           cv::Mat image) {

@@ -27,10 +27,9 @@ namespace optical_flow {
 class OpticalFlowPublisher : public rclcpp::Node {
  public:
   OpticalFlowPublisher()
-      : Node("optical_flow_publisher"), num_points_(NUM_POINTS) {
+      : Node("optical_flow_publisher"), type_(ProjectionScheme::CONCENTRIC) {
     const std::string pub_name = "optical_flow_vectors_";
-    const int ncams = NUM_CAMERAS / 2;
-    for (int i = 0; i < ncams; ++i) {
+    for (int i = 0; i < NUM_CAMERAS_PER_PI; ++i) {
       const auto shm_name = pub_name + std::to_string(i);
       flow_pubs_.emplace_back(
           this->create_publisher<optical_flow_msgs::msg::Flows>(shm_name, 10));
@@ -52,15 +51,17 @@ class OpticalFlowPublisher : public rclcpp::Node {
           bip::open_only, sem_name_writer.c_str()));
     }
 
+    num_points_ = ProjectionScheme::CONCENTRIC == type_ ? NUM_POINTS / NUM_RINGS
+                                                        : NUM_POINTS;
+
     timer_ = this->create_wall_timer(
         5ms, std::bind(&OpticalFlowPublisher::TimerCallback, this));
   }
 
  private:
   void TimerCallback() {
-    const int ncams = NUM_CAMERAS / 2;
-    assert(flow_pubs_.size() == ncams);
-    assert(regions_.size() == ncams);
+    assert(flow_pubs_.size() == NUM_CAMERAS_PER_PI);
+    assert(regions_.size() == NUM_CAMERAS_PER_PI);
 
     for (size_t i = 0; i < flow_pubs_.size(); ++i) {
       const auto& pub = flow_pubs_[i];
@@ -74,7 +75,7 @@ class OpticalFlowPublisher : public rclcpp::Node {
       msg.v.resize(num_points_, 0.0f);
 
       if (reader_sem->try_wait()) {
-        const size_t num_bytes = NUM_POINTS * sizeof(float);
+        const size_t num_bytes = num_points_ * sizeof(float);
         std::memcpy(msg.u.data(), regions_[i]->get_address(), num_bytes);
         std::memcpy(
             msg.v.data(),
@@ -90,7 +91,8 @@ class OpticalFlowPublisher : public rclcpp::Node {
       }
     }
   }
-  int num_points_;
+  size_t num_points_;
+  int type_;
   rclcpp::TimerBase::SharedPtr timer_;
   std::vector<rclcpp::Publisher<optical_flow_msgs::msg::Flows>::SharedPtr>
       flow_pubs_;

@@ -81,6 +81,7 @@ def generate_launch_description():
                 "plugin_allowlist": [
                     "sys_*",
                     "setpoint_position",
+                    "setpoint_velocity",
                     "imu",
                     "command",
                     "local_position",

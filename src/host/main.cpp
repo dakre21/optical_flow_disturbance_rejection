@@ -29,10 +29,13 @@ int main(int argc, char *argv[]) {
   const int width = 640, height = 480;
   const int frame_rate = 140;
   constexpr const char *camera_type = "imx708";
+  int idx = 0;
 
   std::signal(SIGINT, SignalHandler);
 
+  std::vector<std::unique_ptr<camera_driver::CameraBase>> camera_modules;
   libcamera::CameraManager camera_manager;
+#if USE_PI_CAMERAS
   if (camera_manager.start()) {
     throw std::logic_error("Failed to start camera manager");
   }
@@ -41,8 +44,6 @@ int main(int argc, char *argv[]) {
     throw std::logic_error("Failed to find cameras on the Pi");
   }
 
-  std::vector<std::unique_ptr<camera_driver::CameraBase>> camera_modules;
-  int idx = 0;
   for (auto cam : cameras) {
     const auto camera_id = cam->id();
     if (camera_id.find(camera_type) == std::string::npos) {
@@ -53,13 +54,16 @@ int main(int argc, char *argv[]) {
     camera_modules.emplace_back(std::make_unique<camera_driver::CameraModule3>(
         camera, width, height, std::to_string(idx++), running));
   }
+#endif
 
+#if USE_LUXONIS_CAMERAS
   for (const auto &dev : dai::Device::getAllAvailableDevices()) {
     camera_modules.emplace_back(std::make_unique<camera_driver::LuxonisCamera>(
         dev, dai::CameraBoardSocket::CAM_A,
         dai::ColorCameraProperties::SensorResolution::THE_720_P, width, height,
         frame_rate, std::to_string(idx++), running));
   }
+#endif
 
   std::vector<std::thread> threads;
   for (auto &cm : camera_modules) {
