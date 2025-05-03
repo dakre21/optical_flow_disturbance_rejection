@@ -44,11 +44,17 @@ TODO:
     1. To test rpi cameras ```libcamera-hello --list-cameras```
     1. To test luxonis cameras run the debug exe ```./luxonis_debug```
 
-**SITL ardupilot simulation**
+**SITL + Gazebo ardupilot simulation**
 1. Clone ardupilot from [ardupilot](https://github.com/ArduPilot/ardupilot)
 1. ```cd ardupilot && git submodule update --init --recursive``` 
 1. Do all of the approriate setup in the README.md in ardupilot
-1. ```./Tools/autotest/sim_vehicle.py -v copter --console --map -w``` will run the SITL simulation with mavproxy and map
+1. ```./sim_vehicle.py -v ArduCopter -f gazebo-iris --model JSON --map --console``` will run the SITL simulation with mavproxy and map
     1. Alternatively run ```build/sitl/bin/arducopter -w --model + --speedup 1 --slave 0 --defaults Tools/autotest/default_params/copter.parm --sim-address=127.0.0.1 -I0```
     and ```mavproxy.py --retries 5 --out 127.0.0.1:14550 --master tcp:127.0.0.1:5760 --sitl 127.0.0.1:5501 --map --console```
-1. In a separate terminal run ```ros2 launch optical_flow_bringup bringup.launch.py fcu_url:="udp://127.0.0.1:14550@145550" use_optical_flow:=False use_mocap:=False```
+1. ```gz sim -v4 -r iris_runway.sdf``` will run gazebo with iris model
+1. In a separate terminal(s) 
+    1. ```ros2 launch optical_flow_bringup bringup.launch.py fcu_url:="udp://127.0.0.1:14550@145550" use_optical_flow:=False```
+    1. ```ros2 run chirp_sysid chirp_sysid_node``` for sysid 
+    1. ```ros2 launch optical_flow_bringup joystick.launch.py``` for teleop
+1. For sysid
+    1. ```./modules/mavlink/pymavlink/tools/mavlogdump.py Tools/autotest/logs/00000002.BIN --format csv --type MOTR > motr.csv``` and same for IMUN and POSN

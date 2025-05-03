@@ -27,7 +27,7 @@ class ChipSysIdNode(Node):
         self.declare_parameter("type", "linear")
         self.declare_parameter("dt", 0.01)
         self.declare_parameter("T", 60)
-        self.declare_parameter("f0", 1e-4)
+        self.declare_parameter("f0", 0.01)
         self.declare_parameter("f1", 2.0)
         self.declare_parameter("amp", 5.0)
         self.declare_parameter("symmetric", False)

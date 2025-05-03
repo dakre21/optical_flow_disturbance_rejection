@@ -42,13 +42,9 @@ function sys = DMDcvx(states, inputs, dt)
     X = states(1:end-1, :)';
     X_shifted = states(2:end, :)';
     U = inputs(1:end-1, :)';
-        
-    lambda_A = 1e-2;
-    lambda_B = 0.1;
-    lambda_v = 0.6;
-    lambda_p = 0.1;
-    lambda_phi = 0.3;
 
+    lambda = 0.5;
+        
     cvx_solver mosek
     
     cvx_begin sdp
@@ -57,22 +53,19 @@ function sys = DMDcvx(states, inputs, dt)
 
         delta = X_shifted - A*X - B*U;
 
-        sq_error = delta.^2;
-        v_pen = lambda_v * sum(sq_error(1,:));
-        p_pen = lambda_p * sum(sq_error(2,:));
-        phi_pen = lambda_phi * sum(sq_error(3,:));
-        A_pen = lambda_A * norm(A, 1);
-        B_pen = lambda_B * norm(B, 1);
+        B_pen = lambda * norm(B, 1);
 
-        minimize(v_pen + p_pen + phi_pen + A_pen + B_pen);
-        %minimize(norm(delta, 'fro') + A_pen + B_pen)
+        minimize(norm(delta, 'fro') + B_pen)
         A(1,3) == 9.81;
-        %A(3,2) == 1;
-        %B(3,1) == 0;
+        A(3,2) == 1;
+        A(3,1) == 0;
+        A(2,3) == 0;
+        A(3,3) == 0;
+        B(3,1) == 0;
     cvx_end
-    %C = [0 1 0; 0 0 1];
-    %D = zeros(2,1);
-    sys = ss(A, B, eye(ns), zeros(ns, ni), dt);
+    C = [0 1 0; 0 0 1];
+    D = zeros(size(C,1),ni);
+    sys = ss(A, B, C, D, dt);
 end
 
 function v_body = ned_to_body_velocity(v_ned, roll, pitch, yaw)
@@ -101,7 +94,8 @@ states(:, {'timestamp_imu' }) = [];
 
 frame = innerjoin(states, inputs, 'Keys', 'TimeUS');
 frame(frame.Th0 == 0, :) = [];
-%frame(frame.TimeUS > 133*1e6 & frame.TimeUS < 143*1e6, :) = [];
+frame(frame.TimeUS > 100*1e6, :) = [];
+frame(frame.TimeUS < 60*1e6, :) = [];
 time = frame.TimeUS;
 frame(:, {'TimeUS'}) = [];
 order = {'Th0', 'UR', 'UP', 'UY', 'X', 'U', 'Y', 'V', 'Z', 'W', 'Roll', 'P', 'Pitch', 'Q', 'Yaw', 'R'};
@@ -110,7 +104,6 @@ frame = frame(:, order);
 % lat vel (v) + roll rate (p) + roll angle (phi)
 % A 3x3 B 3x1 delta lateral (set roll)
 
-% (dakre) TODO speed this up w/ lambda
 for t = 1:length(frame.U)
     v_fixed = [frame.U; frame.V; frame.W]';
     v_body = ned_to_body_velocity(v_fixed(:,t), frame.Roll(t), frame.Pitch(t), frame.Yaw(t));
@@ -122,8 +115,6 @@ frame(:, {'Th0', 'UP', 'UY', 'X', 'U', 'Y', 'Z', 'W', 'Pitch', 'Q', 'Yaw', 'R'})
 fr = frame(:, {'UR','V', 'P', 'Roll'});
 
 frame = table2array(fr);
-%n_inputs = 4;
-%n_states = 12;
 
 n_inputs = 1;
 n_states = 3;
@@ -132,12 +123,16 @@ states = frame(:, n_inputs+1:end);
 assert(size(states, 2) == n_states);
 assert(size(inputs, 2) == n_inputs);
 
+%v_bias = abs(mean(states(:,1)));
+%states(:,1) = states(:,1) - v_bias;
+
 dt = mean(diff(time)) * 1e-6;
 
 mx = [max(states(:, 1)); max(states(:, 2)); max(states(:, 3))];
 states(:, 1) = states(:, 1) / mx(1);
 states(:, 2) = states(:, 2) / mx(2);
 states(:, 3) = states(:, 3) / mx(3);
+disp(mx)
 
 G = DMDcvx(states, inputs, dt);
 %G = DMDc(states, inputs, dt);
@@ -161,8 +156,9 @@ end
 X_dmdc_sim = lsim(G, inputs, []);
 time_s = time / 1e6;
 figure;
-for i = 1:n_states
-    subplot(n_states,1,i);
+n_obs = size(G.C, 1);
+for i = 1:n_obs
+    subplot(n_obs,1,i);
     plot(time_s, states(:, i)*mx(i), 'b', 'LineWidth', 1.5); hold on;
     plot(time_s, X_dmdc_sim(:, i)*mx(i), 'r--', 'LineWidth', 1.5);
     xlabel('Time (s)');
@@ -172,12 +168,11 @@ for i = 1:n_states
 end
 title('State Trajectory Comparison');
 
-time_s = time / 1e6;
 figure;
-for i = 1:n_states
-    subplot(n_states,1,i);
+for i = 1:n_obs
+    subplot(n_obs,1,i);
     delta = mx(i)*(states(:, i) - X_dmdc_sim(:, i));
-    plot(time, delta, 'b', 'LineWidth', 1.5);
+    plot(time_s, delta, 'b', 'LineWidth', 1.5);
     xlabel('Time (s)');
     ylabel(['Delta State x_' num2str(i)]); 
     grid on;
