@@ -128,6 +128,20 @@ function v_body = ned_to_body_velocity(v_ned, roll, pitch, yaw)
     v_body = R_bf * v_ned;
 end
 
+function pqr = rates_to_pqr(rates, roll, pitch, yaw)
+    cr = cos(roll); sr = sin(roll);
+    cp = cos(pitch); sp = sin(pitch);
+    cy = cos(yaw); sy = sin(yaw);
+
+    R = [...
+        1 0 -sp;
+        0 cr sr*cp;
+        0 -sr cr*cp
+    ];
+
+    pqr = R * rates;
+end
+
 pos = readtable('posn.csv');
 imu = readtable('imun.csv');
 inputs = readtable('motr.csv');
@@ -155,6 +169,11 @@ for t = 1:length(frame.U)
     frame.U(t) = v_body(1);
     frame.V(t) = v_body(2);
     frame.W(t) = v_body(3);
+    %rates = [frame.P; frame.Q; frame.R]';
+    %pqr = rates_to_pqr(rates(:,t), frame.Roll(t), frame.Pitch(t), frame.Yaw(t));
+    %frame.P(t) = pqr(1);
+    %frame.Q(t) = pqr(2);
+    %frame.R(t) = pqr(3);
 end
 frame(:, {'Th0', 'UP', 'UY', 'X', 'U', 'Y', 'Z', 'W', 'Pitch', 'Q', 'Yaw', 'R'}) = [];
 fr = frame(:, {'UR','V', 'P', 'Roll'});
