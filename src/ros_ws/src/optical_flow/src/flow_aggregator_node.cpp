@@ -65,21 +65,13 @@ class FlowAggregator : public rclcpp::Node {
       flow_mat(1, i) = v_[i];
     }
 
-    // (dakre) TODO perform projection when we have it: y = Cx -> \hat{x}
-    // \hat{x} = C^{-1} y... furthermore, may need to truncate u and v to match
-    // expected size of the C linear mapping
-    Eigen::MatrixXd x_hat(6, 1);
-    x_hat << 0, 0, 0, 0, 0, 0;
+    // (dakre) TODO perform projection on flows for v
+    double v = 0.0;
 
     geometry_msgs::msg::TwistStamped twist;
     twist.header.stamp = this->get_clock()->now();
     twist.header.frame_id = "base_link";
-    twist.twist.linear.x = x_hat(0);
-    twist.twist.linear.y = x_hat(1);
-    twist.twist.linear.z = x_hat(2);
-
-    // (dakre) bastardizing angular vel message with num cam inputs
-    twist.twist.angular.z = u_.size() / NUM_POINTS;
+    twist.twist.linear.y = v;
 
     twist_pub_->publish(twist);
 

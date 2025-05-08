@@ -17,8 +17,10 @@ def generate_launch_description():
     return launch.LaunchDescription(
         [
             launch.actions.DeclareLaunchArgument(
-                "joy_vel", default_value="/mavros/setpoint_velocity/cmd_vel_unstamped"
+                #"joy_vel", default_value="/mavros/setpoint_velocity/cmd_vel_unstamped"
+                "joy_vel", default_value="/cmd_vel_unstamped"
             ),
+            launch.actions.DeclareLaunchArgument("joy", default_value="/mavros/joystick_to_attitude/joy"),
             launch.actions.DeclareLaunchArgument("joy_config", default_value="xbox"),
             launch.actions.DeclareLaunchArgument("joy_dev", default_value="0"),
             launch.actions.DeclareLaunchArgument(
@@ -49,6 +51,9 @@ def generate_launch_description():
                         "autorepeat_rate": 20.0,
                     }
                 ],
+                remappings={
+                    ("/joy", launch.substitutions.LaunchConfiguration("joy"))
+                },
             ),
             launch_ros.actions.Node(
                 package="teleop_twist_joy",

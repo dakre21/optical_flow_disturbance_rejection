@@ -90,6 +90,7 @@ def generate_launch_description():
                     "local_position",
                     "vision_pose",
                     "velocity_observer",
+                    "joystick_to_attitude"
                 ]
             },
         ],
